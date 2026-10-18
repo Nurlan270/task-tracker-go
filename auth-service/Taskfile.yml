@@ -1,0 +1,90 @@
+version: '3'
+
+vars:
+  BIN_FOLDER: "{{.ROOT_DIR}}/bin"
+  GOOSE: "{{.BIN_FOLDER}}/goose"
+
+tasks:
+  bin:init:
+    desc: Create bin folder if not already exists
+    silent: true
+    status:
+      - test -d {{.BIN_FOLDER}}
+    cmds:
+      - mkdir -p {{.BIN_FOLDER}}
+
+  goose:install:
+    desc: Install Goose binary
+    deps: [ bin:init ]
+    silent: true
+    status:
+      - test -x {{.GOOSE}}
+    cmds:
+      - |
+        echo "⏳︎ Installing Goose binary..."
+        curl -sSfL \
+        https://raw.githubusercontent.com/pressly/goose/master/install.sh \
+          | GOOSE_INSTALL={{.ROOT_DIR}} sh -s > /dev/null
+        echo "✔︎ Goose binary was installed to {{.GOOSE}}"
+
+  migrate:status:
+    desc: Print migrations status information
+    deps: [ goose:install ]
+    silent: true
+    cmds:
+      - '{{.GOOSE}} status'
+
+  migrate:new:
+    desc: Create new migration file
+    deps: [ goose:install ]
+    silent: true
+    requires:
+      vars:
+        - name
+    cmds:
+      - '{{.GOOSE}} create {{.name}} sql'
+
+  migrate:
+    desc: Run all migrations
+    aliases: [ migrate:up ]
+    deps: [ goose:install ]
+    silent: true
+    cmds:
+      - '{{.GOOSE}} up | true'
+
+  migrate:down:
+    desc: Roll back migrations by one
+    deps: [ goose:install ]
+    silent: true
+    cmds:
+      - '{{.GOOSE}} down'
+
+  migrate:reset:
+    desc: Roll back all migrations
+    deps: [ goose:install ]
+    silent: true
+    cmds:
+      - '{{.GOOSE}} reset'
+
+  migrate:fresh:
+    desc: Roll back all migrations & invoke up on all migrations
+    deps: [ goose:install ]
+    silent: true
+    cmds:
+      - task: migrate:reset
+      - task: migrate:up
+
+  test:
+    desc: Run all tests
+    silent: true
+    cmds:
+      - go test -v ./...
+
+  test:run:
+    desc: Run provided tests
+    silent: true
+    requires:
+      vars:
+        - tests
+    cmds:
+      - go test -v {{.tests}}

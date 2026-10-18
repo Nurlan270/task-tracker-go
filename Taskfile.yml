@@ -1,0 +1,90 @@
+version: '3'
+
+vars:
+  BIN_FOLDER: "{{.ROOT_DIR}}/bin"
+  LINTER: "{{.BIN_FOLDER}}/golangci-lint"
+  LINTER_CONFIG: "{{.ROOT_DIR}}/.golangci.yml"
+  LINTER_VERSION: "v2.12.2"
+
+includes:
+  service:auth:
+    dir: ./auth-service
+    taskfile: ./auth-service/Taskfile.yml
+
+tasks:
+  bin:init:
+    desc: Create bin folder if not already exists
+    silent: true
+    status:
+      - test -d {{.BIN_FOLDER}}
+    cmds:
+      - mkdir -p {{.BIN_FOLDER}}
+
+  lint:install:
+    desc: Install golangci-lint binary
+    deps: [ bin:init ]
+    silent: true
+    status:
+      - test -x {{.LINTER}}
+    cmds:
+      - |
+        echo "⏳︎ Installing golangci-lint binary..."
+        curl -sSfL \
+          https://golangci-lint.run/install.sh | sh -s {{.LINTER_VERSION}} > /dev/null 2>&1
+        echo "✔︎ Linter binary was installed to {{.LINTER}}"
+
+  lint:
+    desc: Lint whole project
+    deps: [ lint:install ]
+    silent: true
+    cmds:
+      - cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - cd auth-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+
+  app:start:
+    desc: Build and start application
+    silent: true
+    cmds:
+      - docker compose up -d --build
+      - task: service:auth:migrate
+
+  app:restart:
+    desc: Stop and start app again
+    silent: true
+    cmds:
+      - task: app:stop
+      - task: app:start
+
+  app:reboot:
+    desc: Stop and start app again & remove all dedicated volumes
+    silent: true
+    cmds:
+      - task: app:reset
+      - task: app:start
+
+  app:stop:
+    desc: Stop application
+    silent: true
+    cmds:
+      - docker compose down
+
+  app:reset:
+    desc: Stop application & drop all volumes
+    silent: true
+    cmds:
+      - docker compose down -v
+
+  test:
+    desc: Run all tests
+    silent: true
+    cmds:
+      - go test -v ./...
+
+  test:run:
+    desc: Run provided tests
+    silent: true
+    requires:
+      vars:
+        - tests
+    cmds:
+      - go test -v {{.tests}}

@@ -1,0 +1,42 @@
+services:
+  auth-service:
+    container_name: auth-service
+    build:
+      target: dev
+      context: .
+      dockerfile: auth-service/docker/app/Dockerfile
+    volumes:
+      - ./auth-service:/app/auth-service
+    expose:
+      - 7070
+    networks:
+      - task-tracker-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  postgres:
+    container_name: postgres
+    image: postgres:18-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./docker/postgres/.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - task-tracker-network
+    restart: unless-stopped
+
+networks:
+  task-tracker-network:
+
+volumes:
+  pg_data:
