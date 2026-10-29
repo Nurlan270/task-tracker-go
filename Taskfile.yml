@@ -2,9 +2,13 @@ version: '3'
 
 vars:
   BIN_FOLDER: "{{.ROOT_DIR}}/bin"
+
   LINTER: "{{.BIN_FOLDER}}/golangci-lint"
   LINTER_CONFIG: "{{.ROOT_DIR}}/.golangci.yml"
   LINTER_VERSION: "v2.12.2"
+
+  BUF: "{{.BIN_FOLDER}}/buf"
+  BUF_VERSION: "v1.74.0"
 
 includes:
   service:auth:
@@ -19,6 +23,26 @@ tasks:
       - test -d {{.BIN_FOLDER}}
     cmds:
       - mkdir -p {{.BIN_FOLDER}}
+
+  buf:install:
+    desc: Install buf binary
+    deps: [ bin:init ]
+    silent: true
+    status:
+      - test -x {{.BUF}}
+    cmds:
+      - |
+        echo "⏳︎ Installing buf binary..."
+        GOBIN={{.BIN_FOLDER}} go install github.com/bufbuild/buf/cmd/buf@{{.BUF_VERSION}}
+        echo "✔︎ Buf binary was installed to {{.BUF}}"    
+
+  buf:generate:
+    desc: Generate proto files
+    deps: [ buf:install ]
+    aliases: [ buf:gen ]
+    silent: true
+    cmds:
+      - '{{.BUF}} generate'
 
   lint:install:
     desc: Install golangci-lint binary
@@ -46,7 +70,6 @@ tasks:
     silent: true
     cmds:
       - docker compose up -d --build
-      - task: service:auth:migrate
 
   app:restart:
     desc: Stop and start app again

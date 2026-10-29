@@ -1,3 +1,15 @@
 app:
   env: "dev"
   name: "auth-service"
+
+database:
+  host: postgres
+  port: 5432
+
+grpc:
+  port: 7070
+  timeout: 15s
+
+jwt:
+  access_ttl: 15m
+  refresh_ttl: 168h # 7 days

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1;auth_v1";
+
+import "google/protobuf/empty.proto";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+}
+
+message RegisterRequest {
+  //  user's name
+  string name = 1;
+
+  //  user's email address
+  string email = 2;
+
+  //  user's password
+  string password = 3;
+}
+
+message RegisterResponse {
+  //  access token given to user on register
+  string access_token = 1;
+
+  //  refresh token to update access token
+  string refresh_token = 2;
+}
+
+message LoginRequest {
+  //  user's email
+  string email = 1;
+
+  //  user's password
+  string password = 2;
+}
+
+message LoginResponse {
+  //  access token given to user on login
+  string access_token = 1;
+
+  //  refresh token to update access token
+  string refresh_token = 2;
+}
+
+message LogoutRequest {
+  //  refresh token used to log out user
+  string refresh_token = 1;
+}

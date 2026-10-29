@@ -4,14 +4,18 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates git
 
+ENV GOWORK=/app/go.work
+
 COPY go.work ./
 
 COPY common/go.mod common/go.sum ./common/
+COPY protos/go.mod protos/go.sum ./protos/
 COPY auth-service/go.mod auth-service/go.sum ./auth-service/
 
-RUN cd auth-service && go mod download
+RUN cd auth-service && go mod download -x
 
 COPY common ./common
+COPY protos ./protos
 COPY auth-service ./auth-service
 
 FROM base AS dev

@@ -3,5 +3,6 @@
 .idea/
 logs/
 bin/
+tmp/
 
 .env
