@@ -21,10 +21,10 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) Create(ctx context.Context, user models.User) (uint, error) {
+func (r *UserRepository) Create(ctx context.Context, user *models.User) (uint, error) {
 	db := ctxlib.GetDB(ctx, r.db)
 
-	err := gorm.G[models.User](db).Create(ctx, &user)
+	err := gorm.G[models.User](db).Create(ctx, user)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return 0, errs.ErrUserAlreadyExists

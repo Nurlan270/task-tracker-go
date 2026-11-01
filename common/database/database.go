@@ -8,18 +8,27 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-type DBConfig interface {
-	GetConnString() string
+type Connector interface {
+	GetDSN() string
 }
 
-func MustNew(cfg DBConfig) *gorm.DB {
-	db, err := gorm.Open(postgres.Open(cfg.GetConnString()), &gorm.Config{
+func MustNew(conn Connector) *gorm.DB {
+	db, err := New(conn)
+	if err != nil {
+		panic(err)
+	}
+
+	return db
+}
+
+func New(conn Connector) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(conn.GetDSN()), &gorm.Config{
 		TranslateError: true,
 		Logger:         logger.Discard,
 	})
 	if err != nil {
-		panic(fmt.Sprintf("database: failed to connect: %s", err))
+		return &gorm.DB{}, fmt.Errorf("postgres: failed to connect: %w", err)
 	}
 
-	return db
+	return db, nil
 }

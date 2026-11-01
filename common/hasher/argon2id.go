@@ -39,13 +39,14 @@ func (h ArgonHasher) Hash(v string) (string, error) {
 	return hash, nil
 }
 
-func (h ArgonHasher) Verify(v, hash string) error {
+func (h ArgonHasher) Verify(v, hash string) (bool, error) {
 	sem <- struct{}{}
 	defer func() { <-sem }()
 
-	if _, err := argon2id.ComparePasswordAndHash(v, hash); err != nil {
-		return fmt.Errorf("argon2id: failed to verify value against hash: %w", err)
+	match, err := argon2id.ComparePasswordAndHash(v, hash)
+	if err != nil {
+		return false, fmt.Errorf("argon2id: failed to verify value against hash: %w", err)
 	}
 
-	return nil
+	return match, nil
 }

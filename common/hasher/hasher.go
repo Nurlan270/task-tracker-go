@@ -5,6 +5,6 @@ type Hasher interface {
 	Hash(v string) (string, error)
 
 	//	Verify verifies passed value against hash
-	//	and returns nil if hashes match, error otherwise
-	Verify(v, hash string) error
+	//	and returns true if hashes match, false otherwise
+	Verify(v, hash string) (bool, error)
 }

@@ -24,7 +24,7 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user models.User) (uint, error)
+	Create(ctx context.Context, user *models.User) (uint, error)
 	FindByEmail(ctx context.Context, email string) (models.User, error)
 }
 
@@ -74,10 +74,10 @@ func (s *AuthService) Register(
 	//	Normalize request body
 	body.Normalize()
 
-	//	Validate request body
+	//	Validate request bodyH
 	if err := body.Validate(); err != nil {
-		if errors.Is(err, errs.ErrInternal) {
-			log.Error("validation error", zap.Error(err))
+		if !errs.IsValidation(err) {
+			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
@@ -99,7 +99,7 @@ func (s *AuthService) Register(
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		txCtx := ctxlib.NewTXCtx(ctx, tx)
 
-		user := models.User{
+		user := &models.User{
 			Name:     body.Name,
 			Email:    body.Email,
 			Password: passHash,
@@ -107,11 +107,11 @@ func (s *AuthService) Register(
 
 		//	Insert user into DB
 		uid, err := s.userRepo.Create(txCtx, user)
-		if errors.Is(err, errs.ErrUserAlreadyExists) {
-			return status.Error(codes.AlreadyExists, message.ErrUserAlreadyExists)
-		}
-
 		if err != nil {
+			if errors.Is(err, errs.ErrUserAlreadyExists) {
+				return status.Error(codes.AlreadyExists, message.ErrUserAlreadyExists)
+			}
+
 			log.Error("failed to create user", zap.Error(err))
 
 			return status.Error(codes.Internal, message.ErrInternal)
@@ -155,8 +155,8 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 
 	//	Validate request body
 	if err := body.Validate(); err != nil {
-		if errors.Is(err, errs.ErrInternal) {
-			log.Error("validation error", zap.Error(err))
+		if !errs.IsValidation(err) {
+			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
@@ -179,6 +179,16 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 			log.Error("failed to find user by email", zap.Error(err))
 
 			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		//	Verify password hashes
+		match, err := s.hasher.Verify(body.Password, user.Password)
+		if err != nil {
+			log.Error("failed to verify password", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		} else if !match {
+			return status.Error(codes.Unauthenticated, message.ErrUserNotFound)
 		}
 
 		//	Generate token pair and insert new refresh token
@@ -217,8 +227,8 @@ func (s *AuthService) Logout(ctx context.Context, req *authV1.LogoutRequest) (*e
 
 	//	Validate request body
 	if err := body.Validate(); err != nil {
-		if errors.Is(err, errs.ErrInternal) {
-			log.Error("validation error", zap.Error(err))
+		if !errs.IsValidation(err) {
+			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
