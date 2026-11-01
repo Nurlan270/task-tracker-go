@@ -5,10 +5,13 @@ vars:
 
   LINTER: "{{.BIN_FOLDER}}/golangci-lint"
   LINTER_CONFIG: "{{.ROOT_DIR}}/.golangci.yml"
-  LINTER_VERSION: "v2.12.2"
+  LINTER_VERSION: "v2.15.0"
 
   BUF: "{{.BIN_FOLDER}}/buf"
   BUF_VERSION: "v1.74.0"
+
+  MOCKERY: "{{.BIN_FOLDER}}/mockery"
+  MOCKERY_VERSION: "v3.9.0"
 
 includes:
   service:auth:
@@ -25,14 +28,14 @@ tasks:
       - mkdir -p {{.BIN_FOLDER}}
 
   buf:install:
-    desc: Install buf binary
+    desc: Install Buf binary
     deps: [ bin:init ]
     silent: true
     status:
       - test -x {{.BUF}}
     cmds:
       - |
-        echo "⏳︎ Installing buf binary..."
+        echo "⏳︎ Installing Buf binary..."
         GOBIN={{.BIN_FOLDER}} go install github.com/bufbuild/buf/cmd/buf@{{.BUF_VERSION}}
         echo "✔︎ Buf binary was installed to {{.BUF}}"    
 
@@ -52,7 +55,7 @@ tasks:
       - test -x {{.LINTER}}
     cmds:
       - |
-        echo "⏳︎ Installing golangci-lint binary..."
+        echo "⏳︎ Installing Linter binary..."
         curl -sSfL \
           https://golangci-lint.run/install.sh | sh -s {{.LINTER_VERSION}} > /dev/null 2>&1
         echo "✔︎ Linter binary was installed to {{.LINTER}}"
@@ -64,6 +67,26 @@ tasks:
     cmds:
       - cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
       - cd auth-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+
+  mock:install:
+    desc: Install Mockery binary
+    deps: [ bin:init ]
+    silent: true
+    status:
+      - test -x {{.MOCKERY}}
+    cmds:
+      - |
+        echo "⏳︎ Installing Mockery binary..."
+        GOBIN={{.BIN_FOLDER}} go install github.com/vektra/mockery/v3@{{.MOCKERY_VERSION}}
+        echo "✔︎ Mockery binary was installed to {{.MOCKERY}}"
+
+  mock:generate:
+    desc: Generate mock files
+    deps: [ mock:install ]
+    aliases: [ mock:gen ]
+    silent: true
+    cmds:
+      - '{{.MOCKERY}}'
 
   app:start:
     desc: Build and start application
@@ -96,18 +119,3 @@ tasks:
     silent: true
     cmds:
       - docker compose down -v
-
-  test:
-    desc: Run all tests
-    silent: true
-    cmds:
-      - go test -v ./...
-
-  test:run:
-    desc: Run provided tests
-    silent: true
-    requires:
-      vars:
-        - tests
-    cmds:
-      - go test -v {{.tests}}
