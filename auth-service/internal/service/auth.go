@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
@@ -29,8 +28,9 @@ type UserRepository interface {
 }
 
 type TokenRepository interface {
-	CreateRefresh(ctx context.Context, token models.RefreshToken) error
-	DeleteRefreshByHash(ctx context.Context, hash string) error
+	CreateRefresh(ctx context.Context, token *models.RefreshToken) error
+	MarkRefreshAsRevokedByHash(ctx context.Context, hash string) error
+	GetRefreshByHashWithUser(ctx context.Context, hash string) (models.RefreshToken, error)
 }
 
 type AuthService struct {
@@ -74,7 +74,7 @@ func (s *AuthService) Register(
 	//	Normalize request body
 	body.Normalize()
 
-	//	Validate request bodyH
+	//	Validate request body
 	if err := body.Validate(); err != nil {
 		if !errs.IsValidation(err) {
 			log.Error("internal validation error", zap.Error(err))
@@ -95,7 +95,6 @@ func (s *AuthService) Register(
 
 	var tokenPair jwt.TokenPair
 
-	//	Put all operations into TX for atomicity
 	err = s.db.Transaction(func(tx *gorm.DB) error {
 		txCtx := ctxlib.NewTXCtx(ctx, tx)
 
@@ -117,14 +116,29 @@ func (s *AuthService) Register(
 			return status.Error(codes.Internal, message.ErrInternal)
 		}
 
-		//	Generate token pair and insert new refresh token
-		tokenPair, err = s.generateAndInsertTokens(txCtx, uid, jwt.Claims{
+		claims := jwt.Claims{
 			"user_id": uid,
 			"name":    user.Name,
 			"email":   user.Email,
-		})
+		}
+
+		//	Generate JWT token pair
+		tokenPair, err = s.tokenManager.Generate(claims)
 		if err != nil {
-			log.Error("failed to generate and insert tokens", zap.Error(err))
+			log.Error("failed to generate jwt token pair", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		refresh := &models.RefreshToken{
+			UserID:    uid,
+			TokenHash: tokenPair.RefreshToken.Hash,
+			ExpiresAt: tokenPair.RefreshToken.ExpiresAt,
+		}
+
+		//	Insert refresh token into DB
+		if err = s.tokenRepo.CreateRefresh(txCtx, refresh); err != nil {
+			log.Error("failed to create refresh token", zap.Error(err))
 
 			return status.Error(codes.Internal, message.ErrInternal)
 		}
@@ -139,6 +153,7 @@ func (s *AuthService) Register(
 	return &authV1.RegisterResponse{
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
+		ExpiresIn:    int64(tokenPair.AccessToken.ExpiresIn.Seconds()),
 	}, nil
 }
 
@@ -169,7 +184,7 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		txCtx := ctxlib.NewTXCtx(ctx, tx)
 
-		//	Check whether user with email exists
+		//	Check whether a user with email exists
 		user, err := s.userRepo.FindByEmail(txCtx, body.Email)
 		if err != nil {
 			if errors.Is(err, errs.ErrUserNotFound) {
@@ -191,14 +206,29 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 			return status.Error(codes.Unauthenticated, message.ErrUserNotFound)
 		}
 
-		//	Generate token pair and insert new refresh token
-		tokenPair, err = s.generateAndInsertTokens(txCtx, user.ID, jwt.Claims{
+		claims := jwt.Claims{
 			"user_id": user.ID,
 			"name":    user.Name,
 			"email":   user.Email,
-		})
+		}
+
+		//	Generate JWT token pair
+		tokenPair, err = s.tokenManager.Generate(claims)
 		if err != nil {
-			log.Error("failed to generate and insert tokens", zap.Error(err))
+			log.Error("failed to generate jwt token pair", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		refresh := &models.RefreshToken{
+			UserID:    user.ID,
+			TokenHash: tokenPair.RefreshToken.Hash,
+			ExpiresAt: tokenPair.RefreshToken.ExpiresAt,
+		}
+
+		//	Insert refresh token into DB
+		if err = s.tokenRepo.CreateRefresh(txCtx, refresh); err != nil {
+			log.Error("failed to create refresh token", zap.Error(err))
 
 			return status.Error(codes.Internal, message.ErrInternal)
 		}
@@ -212,6 +242,7 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 	return &authV1.LoginResponse{
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
+		ExpiresIn:    int64(tokenPair.AccessToken.ExpiresIn.Seconds()),
 	}, nil
 }
 
@@ -236,38 +267,112 @@ func (s *AuthService) Logout(ctx context.Context, req *authV1.LogoutRequest) (*e
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	hash := s.tokenManager.HashToken(req.GetRefreshToken())
+	hash := s.tokenManager.HashToken(body.RefreshToken)
 
-	if err := s.tokenRepo.DeleteRefreshByHash(ctx, hash); err != nil {
-		log.Error("failed to delete refresh token", zap.Error(err))
+	//	Mark refresh token as revoked
+	if err := s.tokenRepo.MarkRefreshAsRevokedByHash(ctx, hash); err != nil {
+		if errors.Is(err, errs.ErrRefreshTokenNotFound) {
+			//	Provided refresh token is invalid
+			return &emptypb.Empty{}, status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
+		}
 
-		return nil, status.Error(codes.Internal, message.ErrInternal)
+		log.Error("failed to mark refresh token as revoked", zap.Error(err))
+
+		return &emptypb.Empty{}, status.Error(codes.Internal, message.ErrInternal)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-func (s *AuthService) generateAndInsertTokens(
+func (s *AuthService) Refresh(
 	ctx context.Context,
-	uid uint,
-	claims jwt.Claims,
-) (jwt.TokenPair, error) {
-	//	Generate JWT token pair
-	tokenPair, err := s.tokenManager.Generate(claims)
+	req *authV1.RefreshRequest,
+) (*authV1.RefreshResponse, error) {
+	log := logger.Get().SetOp("Refresh")
+
+	body := request.LogoutUser{
+		RefreshToken: req.GetRefreshToken(),
+	}
+
+	//	Normalize request body
+	body.Normalize()
+
+	//	Validate request body
+	if err := body.Validate(); err != nil {
+		if !errs.IsValidation(err) {
+			log.Error("internal validation error", zap.Error(err))
+
+			return nil, status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	var tokenPair jwt.TokenPair
+
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		txCtx := ctxlib.NewTXCtx(ctx, tx)
+
+		hash := s.tokenManager.HashToken(body.RefreshToken)
+
+		//	Mark old refresh token as revoked
+		if err := s.tokenRepo.MarkRefreshAsRevokedByHash(txCtx, hash); err != nil {
+			if errors.Is(err, errs.ErrRefreshTokenNotFound) {
+				return status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
+			}
+
+			log.Error("failed to mark refresh token as revoked", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		//	Get old refresh from DB with associated user data
+		dbRefresh, err := s.tokenRepo.GetRefreshByHashWithUser(txCtx, hash)
+		if err != nil {
+			if errors.Is(err, errs.ErrRefreshTokenNotFound) {
+				return status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
+			}
+
+			log.Error("failed to find refresh by hash", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		claims := jwt.Claims{
+			"user_id": dbRefresh.User.ID,
+			"name":    dbRefresh.User.Name,
+			"email":   dbRefresh.User.Email,
+		}
+
+		//	Generate JWT token pair
+		tokenPair, err = s.tokenManager.Generate(claims)
+		if err != nil {
+			log.Error("failed to generate jwt token pair", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		refresh := &models.RefreshToken{
+			UserID:    dbRefresh.User.ID,
+			TokenHash: tokenPair.RefreshToken.Hash,
+			ExpiresAt: dbRefresh.ExpiresAt,
+		}
+
+		//	Insert new refresh token into DB
+		if err = s.tokenRepo.CreateRefresh(txCtx, refresh); err != nil {
+			log.Error("failed to create refresh token", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return jwt.TokenPair{}, fmt.Errorf("failed to generate jwt token pair: %w", err)
+		return nil, err
 	}
 
-	refresh := models.RefreshToken{
-		UserID:    uid,
-		Hash:      tokenPair.RefreshToken.Hash,
-		ExpiresAt: tokenPair.RefreshToken.ExpiresAt,
-	}
-
-	//	Insert refresh token into DB
-	if err = s.tokenRepo.CreateRefresh(ctx, refresh); err != nil {
-		return jwt.TokenPair{}, fmt.Errorf("failed to create refresh token: %w", err)
-	}
-
-	return tokenPair, nil
+	return &authV1.RefreshResponse{
+		AccessToken:  tokenPair.AccessToken.Value,
+		RefreshToken: tokenPair.RefreshToken.Value,
+	}, nil
 }

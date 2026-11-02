@@ -21,7 +21,8 @@ var signingMethod = jwt.SigningMethodHS256
 type Claims = jwt.MapClaims
 
 type AccessToken struct {
-	Value string
+	Value     string
+	ExpiresIn time.Duration
 }
 
 type RefreshToken struct {
@@ -71,7 +72,8 @@ func (m *TokenManager) Generate(c Claims) (TokenPair, error) {
 
 	return TokenPair{
 		AccessToken: AccessToken{
-			Value: accessToken,
+			Value:     accessToken,
+			ExpiresIn: m.cfg.AccessTTL,
 		},
 		RefreshToken: RefreshToken{
 			Value:     refreshToken,

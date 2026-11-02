@@ -5,6 +5,7 @@ import (
 	"net"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Nurlan270/task-tracker-go/common/config"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
@@ -60,14 +61,44 @@ func (a *App) migrateDB() {
 	}
 }
 
+func (a *App) runCleanupWorker(ctx context.Context) {
+	log := logger.Get().SetOp("runCleanupWorker")
+
+	//	Worker will try to remove all expired refresh tokens every 24 hours
+	ticker := time.NewTicker(24 * time.Hour)
+
+	go func() {
+		defer ticker.Stop()
+
+		log.Info("Starting cleanup worker")
+
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info("Shutting down cleanup worker")
+				return
+
+			case <-ticker.C:
+				deleted, err := a.di.TokenRepo().DeleteExpiredTokens(ctx)
+				if err != nil {
+					log.Error("failed to delete expired tokens", zap.Error(err))
+					continue
+				}
+
+				log.Info("deleted expired tokens", zap.Int("count", deleted))
+			}
+		}
+	}()
+}
+
 func (a *App) initGRPC() {
 	grpcSrv := a.di.GRPCServer()
 
 	authV1.RegisterAuthServiceServer(grpcSrv, a.di.AuthService())
 }
 
-func (a *App) Run() {
-	log := logger.Get().SetOp("Run")
+func (a *App) runGRPC(ctx context.Context) {
+	log := logger.Get().SetOp("runGRPC")
 
 	listener, err := net.Listen("tcp", a.cfg.GRPC.GetAddr())
 	if err != nil {
@@ -79,7 +110,7 @@ func (a *App) Run() {
 	grpcSrvErr := make(chan error, 1)
 
 	go func() {
-		log.Info("starting gRPC server", zap.String("address", a.cfg.GRPC.GetAddr()))
+		log.Info("Starting gRPC server", zap.String("address", a.cfg.GRPC.GetAddr()))
 
 		if err = grpcSrv.Serve(listener); err != nil {
 			grpcSrvErr <- err
@@ -89,23 +120,28 @@ func (a *App) Run() {
 		grpcSrvErr <- nil
 	}()
 
-	//	Graceful shutdown handling
-	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case <-ctx.Done():
+		log.Info("Shutting down gRPC server")
+
+		//	Shutting down gRPC server
+		grpcSrv.GracefulStop()
+	case err = <-grpcSrvErr:
+		log.Fatal("failed to serve gRPC", zap.Error(err))
+	}
+}
+
+func (a *App) Run() {
+	log := logger.Get().SetOp("Run")
+
+	log.Info("Starting application")
+
+	//	Catch signals
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	select {
-	case <-signalCtx.Done():
-		log.Info("received SIGINT/SIGTERM, shutting down gRPC server")
+	a.runCleanupWorker(ctx)
+	a.runGRPC(ctx)
 
-		//	Double Ctrl+C pattern.
-		//	Second Ctrl+C will close server immediately.
-		stop()
-	case err = <-grpcSrvErr:
-		log.Error("failed to serve gRPC", zap.Error(err))
-	}
-
-	//	Shutting down gRPC server
-	grpcSrv.GracefulStop()
-
-	//	here we'll close all other services
+	//	here we'll close all opened resources using closer pattern...
 }

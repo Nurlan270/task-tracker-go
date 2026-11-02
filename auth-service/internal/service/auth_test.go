@@ -278,3 +278,19 @@ func (s *AuthServiceTestSuite) TestLogin() {
 		s.Require().ErrorContains(err, message.ErrUserNotFound)
 	})
 }
+
+func (s *AuthServiceTestSuite) TestLogout() {
+	s.Run("it should not logout with invalid refresh token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		resp, err := s.authSvc.Logout(ctx, &authV1.LogoutRequest{
+			RefreshToken: "invalid-refresh-token",
+		})
+
+		s.Require().Error(err)
+		s.Require().Empty(resp)
+		s.Require().Equal(codes.Unauthenticated, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrRefreshTokenInvalid)
+	})
+}

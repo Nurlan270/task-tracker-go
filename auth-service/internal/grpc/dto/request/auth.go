@@ -77,3 +77,21 @@ func (r *LogoutUser) Validate() error {
 		valid.Field(&r.RefreshToken, valid.Required),
 	))
 }
+
+type RefreshUser struct {
+	RefreshToken string
+}
+
+// Normalize normalizes input values and gets them ready for validation
+//
+// It should be called before Validate().
+func (r *RefreshUser) Normalize() {
+	r.RefreshToken = strings.TrimSpace(r.RefreshToken)
+}
+
+// Validate validates request body.
+func (r *RefreshUser) Validate() error {
+	return handleValidationErr(valid.ValidateStruct(r,
+		valid.Field(&r.RefreshToken, valid.Required),
+	))
+}

@@ -3,10 +3,14 @@ package app
 import (
 	"github.com/Nurlan270/task-tracker-go/common/database"
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
+	"github.com/Nurlan270/task-tracker-go/common/logger"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
 	"gorm.io/gorm"
 
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/config"
+	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/interceptors"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/jwt"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository/postgres"
@@ -47,8 +51,19 @@ func (c *diContainer) DB() *gorm.DB {
 
 func (c *diContainer) GRPCServer() *grpc.Server {
 	if c.grpcSrv == nil {
-		//todo: add interceptors
-		c.grpcSrv = grpc.NewServer(grpc.ConnectionTimeout(c.cfg.GRPC.Timeout))
+		c.grpcSrv = grpc.NewServer(
+			grpc.ConnectionTimeout(c.cfg.GRPC.Timeout),
+			grpc.ChainUnaryInterceptor(
+				//	Logger interceptor
+				logging.UnaryServerInterceptor(
+					interceptors.LoggerInterceptor(logger.Get()),
+				),
+				//	Recovery interceptor
+				recovery.UnaryServerInterceptor(
+					recovery.WithRecoveryHandler(interceptors.PanicRecoveryHandler),
+				),
+			),
+		)
 	}
 
 	return c.grpcSrv

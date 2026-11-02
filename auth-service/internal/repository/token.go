@@ -7,6 +7,8 @@ import (
 )
 
 type TokenRepository interface {
-	CreateRefresh(ctx context.Context, token models.RefreshToken) error
-	DeleteRefreshByHash(ctx context.Context, hash string) error
+	CreateRefresh(ctx context.Context, token *models.RefreshToken) error
+	GetRefreshByHashWithUser(ctx context.Context, hash string) (models.RefreshToken, error)
+	MarkRefreshAsRevokedByHash(ctx context.Context, hash string) error
+	DeleteExpiredTokens(ctx context.Context) (int, error)
 }

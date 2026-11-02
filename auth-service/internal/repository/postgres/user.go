@@ -39,7 +39,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) (uint, e
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (models.User, error) {
 	db := ctxlib.GetDB(ctx, r.db)
 
-	user, err := gorm.G[models.User](db).Where("email = $1", email).First(ctx)
+	user, err := gorm.G[models.User](db).Where("email = ?", email).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.User{}, errs.ErrUserNotFound

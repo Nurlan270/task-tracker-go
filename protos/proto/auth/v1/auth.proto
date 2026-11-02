@@ -7,9 +7,17 @@ option go_package = "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/
 import "google/protobuf/empty.proto";
 
 service AuthService {
+  //  Register user and return access/refresh token pair
   rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  //  Login user and return access/refresh token pair
   rpc Login(LoginRequest) returns (LoginResponse);
+
+  //  Logout user using its refresh token and return nothing
   rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+
+  //  Refresh user's access/refresh token pair and return new ones
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
 }
 
 message RegisterRequest {
@@ -24,11 +32,14 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
-  //  access token given to user on register
+  //  user's access token
   string access_token = 1;
 
-  //  refresh token to update access token
+  //  user's refresh token
   string refresh_token = 2;
+
+  //  access token's expiration in seconds
+  int64 expires_in = 3;
 }
 
 message LoginRequest {
@@ -40,14 +51,30 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  //  access token given to user on login
+  //  user's access token
   string access_token = 1;
 
-  //  refresh token to update access token
+  //  user's refresh token
   string refresh_token = 2;
+
+  //  access token's expiration in seconds
+  int64 expires_in = 3;
 }
 
 message LogoutRequest {
-  //  refresh token used to log out user
+  //  user's refresh token
   string refresh_token = 1;
+}
+
+message RefreshRequest {
+  //  user's old refresh token
+  string refresh_token = 1;
+}
+
+message RefreshResponse {
+  //  new access token
+  string access_token = 1;
+
+  //  new refresh token
+  string refresh_token = 2;
 }
