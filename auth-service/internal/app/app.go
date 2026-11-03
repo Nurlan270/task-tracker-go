@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Nurlan270/task-tracker-go/common/closer"
 	"github.com/Nurlan270/task-tracker-go/common/config"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"go.uber.org/zap"
@@ -48,6 +49,10 @@ func (a *App) initDeps() {
 
 func (a *App) initLogger() {
 	logger.Init(a.cfg)
+
+	closer.Add("Logger", func() error {
+		return logger.Get().Close()
+	})
 }
 
 func (a *App) migrateDB() {
@@ -61,8 +66,14 @@ func (a *App) migrateDB() {
 	}
 }
 
-func (a *App) runCleanupWorker(ctx context.Context) {
-	log := logger.Get().SetOp("runCleanupWorker")
+func (a *App) initGRPC() {
+	grpcSrv := a.di.GRPCServer()
+
+	authV1.RegisterAuthServiceServer(grpcSrv, a.di.AuthService())
+}
+
+func (a *App) startCleanupWorker(ctx context.Context) {
+	log := logger.Get().SetOp("Start Cleanup Worker")
 
 	//	Worker will try to remove all expired refresh tokens every 24 hours
 	ticker := time.NewTicker(24 * time.Hour)
@@ -91,14 +102,8 @@ func (a *App) runCleanupWorker(ctx context.Context) {
 	}()
 }
 
-func (a *App) initGRPC() {
-	grpcSrv := a.di.GRPCServer()
-
-	authV1.RegisterAuthServiceServer(grpcSrv, a.di.AuthService())
-}
-
-func (a *App) runGRPC(ctx context.Context) {
-	log := logger.Get().SetOp("runGRPC")
+func (a *App) startGRPCServer(ctx context.Context) {
+	log := logger.Get().SetOp("Start gRPC Server")
 
 	listener, err := net.Listen("tcp", a.cfg.GRPC.GetAddr())
 	if err != nil {
@@ -127,7 +132,7 @@ func (a *App) runGRPC(ctx context.Context) {
 		//	Shutting down gRPC server
 		grpcSrv.GracefulStop()
 	case err = <-grpcSrvErr:
-		log.Fatal("failed to serve gRPC", zap.Error(err))
+		log.Error("failed to serve gRPC", zap.Error(err))
 	}
 }
 
@@ -140,8 +145,10 @@ func (a *App) Run() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	a.runCleanupWorker(ctx)
-	a.runGRPC(ctx)
+	//	Start components
+	a.startCleanupWorker(ctx)
+	a.startGRPCServer(ctx)
 
-	//	here we'll close all opened resources using closer pattern...
+	//	Close all opened resources
+	closer.CloseAll(ctx)
 }

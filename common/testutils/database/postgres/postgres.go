@@ -69,7 +69,7 @@ func NewDB(
 		Password: cfg.Password,
 	}
 
-	db, err := database.New(conn)
+	db, _, err := database.New(conn)
 	if err != nil {
 		t.Fatalf("failed to connect to postgres: %s", err)
 	}

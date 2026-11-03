@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/Nurlan270/task-tracker-go/common/closer"
 	"github.com/Nurlan270/task-tracker-go/common/database"
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
@@ -18,7 +19,7 @@ import (
 )
 
 type diContainer struct {
-	//	App configuration
+	//	Configuration
 	cfg *config.Config
 
 	//	Core
@@ -43,7 +44,13 @@ func newDIContainer(cfg *config.Config) diContainer {
 
 func (c *diContainer) DB() *gorm.DB {
 	if c.db == nil {
-		c.db = database.MustNew(c.cfg.Database)
+		db, sqlDB := database.MustNew(c.cfg.Database)
+
+		c.db = db
+
+		closer.Add("Database", func() error {
+			return sqlDB.Close()
+		})
 	}
 
 	return c.db
@@ -53,12 +60,13 @@ func (c *diContainer) GRPCServer() *grpc.Server {
 	if c.grpcSrv == nil {
 		c.grpcSrv = grpc.NewServer(
 			grpc.ConnectionTimeout(c.cfg.GRPC.Timeout),
+			//	Interceptors
 			grpc.ChainUnaryInterceptor(
-				//	Logger interceptor
+				//	Logger
 				logging.UnaryServerInterceptor(
 					interceptors.LoggerInterceptor(logger.Get()),
 				),
-				//	Recovery interceptor
+				//	Recovery
 				recovery.UnaryServerInterceptor(
 					recovery.WithRecoveryHandler(interceptors.PanicRecoveryHandler),
 				),

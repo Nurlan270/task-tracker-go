@@ -5,6 +5,8 @@ app:
 database:
   host: postgres
   port: 5432
+  max_open_conns: 35
+  max_idle_conns: 15
 
 grpc:
   port: 7070
