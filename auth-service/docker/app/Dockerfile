@@ -1,4 +1,4 @@
-FROM golang:1.26.3-alpine AS base
+FROM golang:1.26.10-alpine AS base
 
 WORKDIR /app
 
@@ -10,12 +10,14 @@ COPY go.work ./
 
 COPY common/go.mod common/go.sum ./common/
 COPY protos/go.mod protos/go.sum ./protos/
+COPY gateway/go.mod gateway/go.sum ./gateway/
 COPY auth-service/go.mod auth-service/go.sum ./auth-service/
 
 RUN cd auth-service && go mod download -x
 
 COPY common ./common
 COPY protos ./protos
+COPY gateway ./gateway
 COPY auth-service ./auth-service
 
 FROM base AS dev
