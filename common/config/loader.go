@@ -9,15 +9,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config interface {
-	GetAppEnv() string
-	GetAppName() string
-}
-
 // MustLoad fills Config with data from configuration file and .env file.
 //
 // It will panic if there's an error while loading the config.
-func MustLoad[C Config]() *C {
+func MustLoad[C any]() *C {
 	cfg, err := Load[C]()
 	if err != nil {
 		panic(err)
@@ -27,7 +22,7 @@ func MustLoad[C Config]() *C {
 }
 
 // Load fills Config with data from configuration file and .env file.
-func Load[C Config]() (*C, error) {
+func Load[C any]() (*C, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf("failed to load env file: %w", err)
 	}

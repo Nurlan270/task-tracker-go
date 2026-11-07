@@ -8,6 +8,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/testutils/suite"
+	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -17,9 +18,11 @@ import (
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/models"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository/postgres"
+	cr "github.com/Nurlan270/task-tracker-go/auth-service/internal/validator"
 
 	pg "github.com/Nurlan270/task-tracker-go/common/testutils/database/postgres"
 	authV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1"
+	gpv "github.com/go-playground/validator/v10"
 	testsuite "github.com/stretchr/testify/suite"
 )
 
@@ -31,6 +34,7 @@ type AuthServiceTestSuite struct {
 
 	authSvc *AuthService
 
+	validator    *validator.Validate
 	hasher       hasher.Hasher
 	tokenManager *jwt.TokenManager
 }
@@ -61,10 +65,18 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 		RefreshTTL: 7 * 24 * time.Hour, // 7 days
 	})
 
-	s.hasher = hasher.NewArgonHasher()
+	s.hasher = hasher.NewArgonHasher(nil)
+
+	//	Validator
+	valid := validator.New(gpv.WithRequiredStructEnabled())
+
+	valid.RegisterCustomRules(cr.NameCustomRule())
+	valid.RegisterCustomMessages(cr.Messages)
+
+	s.validator = valid
 
 	//	Service
-	s.authSvc = NewAuthService(s.tokenManager, s.hasher, s.DB(), s.userRepo, s.tokenRepo)
+	s.authSvc = NewAuthService(s.validator, s.tokenManager, s.hasher, s.DB(), s.userRepo, s.tokenRepo)
 
 	// fixme: this is just a stub, it should be fixed
 	logger.Init(config.Config{})
@@ -178,6 +190,7 @@ func (s *AuthServiceTestSuite) TestRegister() {
 		s.Require().Error(err)
 		s.Require().Nil(resp)
 		s.Require().Equal(codes.AlreadyExists, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrEmailTaken)
 	})
 }
 
@@ -240,7 +253,7 @@ func (s *AuthServiceTestSuite) TestLogin() {
 
 		s.Require().Error(err)
 		s.Require().Nil(resp)
-		s.Require().Equal(codes.NotFound, status.Code(err))
+		s.Require().Equal(codes.Unauthenticated, status.Code(err))
 		s.Require().ErrorContains(err, message.ErrUserNotFound)
 	})
 

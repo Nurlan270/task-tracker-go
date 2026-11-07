@@ -5,6 +5,7 @@ package auth.v1;
 option go_package = "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1;auth_v1";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/duration.proto";
 
 service AuthService {
   //  Register user and return access/refresh token pair
@@ -39,7 +40,7 @@ message RegisterResponse {
   string refresh_token = 2;
 
   //  access token's expiration in seconds
-  int64 expires_in = 3;
+  google.protobuf.Duration expires_in = 3;
 }
 
 message LoginRequest {
@@ -58,7 +59,7 @@ message LoginResponse {
   string refresh_token = 2;
 
   //  access token's expiration in seconds
-  int64 expires_in = 3;
+  google.protobuf.Duration expires_in = 3;
 }
 
 message LogoutRequest {
@@ -77,4 +78,7 @@ message RefreshResponse {
 
   //  new refresh token
   string refresh_token = 2;
+
+  //  new access token's expiration in seconds
+  google.protobuf.Duration expires_in = 3;
 }

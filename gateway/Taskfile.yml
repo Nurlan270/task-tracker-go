@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+  PARENT_FOLDER:
+    sh: git rev-parse --show-toplevel
+  PARENT_BIN_FOLDER: "{{.PARENT_FOLDER}}/bin"
+
+tasks:
+  bin:init:
+    desc: Create parent bin folder if not already exists
+    silent: true
+    status:
+      - test -d {{.PARENT_BIN_FOLDER}}
+    cmds:
+      - mkdir -p {{.PARENT_BIN_FOLDER}}
+
+  test:
+    desc: Run all tests
+    silent: true
+    cmds:
+      - go test -v ./...
+
+  test:run:
+    desc: Run provided tests
+    silent: true
+    requires:
+      vars:
+        - tests
+    cmds:
+      - go test -v {{.tests}}

@@ -6,14 +6,17 @@ import (
 
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
+	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 
 	errs "github.com/Nurlan270/task-tracker-go/auth-service/internal/errors"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/dto/request"
+	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/dto/response"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/message"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/jwt"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/models"
@@ -36,6 +39,7 @@ type TokenRepository interface {
 type AuthService struct {
 	authV1.UnimplementedAuthServiceServer
 
+	validator    *validator.Validate
 	tokenManager *jwt.TokenManager
 	hasher       hasher.Hasher
 	db           *gorm.DB
@@ -44,6 +48,7 @@ type AuthService struct {
 }
 
 func NewAuthService(
+	validator *validator.Validate,
 	tokenManager *jwt.TokenManager,
 	hasher hasher.Hasher,
 	db *gorm.DB,
@@ -51,6 +56,7 @@ func NewAuthService(
 	tokenRepo TokenRepository,
 ) *AuthService {
 	return &AuthService{
+		validator:    validator,
 		tokenManager: tokenManager,
 		hasher:       hasher,
 		db:           db,
@@ -71,18 +77,17 @@ func (s *AuthService) Register(
 		Password: req.GetPassword(),
 	}
 
-	//	Normalize request body
-	body.Normalize()
-
 	//	Validate request body
-	if err := body.Validate(); err != nil {
-		if !errs.IsValidation(err) {
+	if err := s.validator.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
 			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
 
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, response.ToGRPCValidationErr(err)
 	}
 
 	//	Hash password
@@ -108,7 +113,7 @@ func (s *AuthService) Register(
 		uid, err := s.userRepo.Create(txCtx, user)
 		if err != nil {
 			if errors.Is(err, errs.ErrUserAlreadyExists) {
-				return status.Error(codes.AlreadyExists, message.ErrUserAlreadyExists)
+				return status.Error(codes.AlreadyExists, message.ErrEmailTaken)
 			}
 
 			log.Error("failed to create user", zap.Error(err))
@@ -153,7 +158,7 @@ func (s *AuthService) Register(
 	return &authV1.RegisterResponse{
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
-		ExpiresIn:    int64(tokenPair.AccessToken.ExpiresIn.Seconds()),
+		ExpiresIn:    durationpb.New(tokenPair.AccessToken.ExpiresIn),
 	}, nil
 }
 
@@ -165,18 +170,17 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 		Password: req.GetPassword(),
 	}
 
-	//	Normalize request body
-	body.Normalize()
-
 	//	Validate request body
-	if err := body.Validate(); err != nil {
-		if !errs.IsValidation(err) {
+	if err := s.validator.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
 			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
 
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, response.ToGRPCValidationErr(err)
 	}
 
 	var tokenPair jwt.TokenPair
@@ -188,7 +192,7 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 		user, err := s.userRepo.FindByEmail(txCtx, body.Email)
 		if err != nil {
 			if errors.Is(err, errs.ErrUserNotFound) {
-				return status.Error(codes.NotFound, message.ErrUserNotFound)
+				return status.Error(codes.Unauthenticated, message.ErrUserNotFound)
 			}
 
 			log.Error("failed to find user by email", zap.Error(err))
@@ -242,7 +246,7 @@ func (s *AuthService) Login(ctx context.Context, req *authV1.LoginRequest) (*aut
 	return &authV1.LoginResponse{
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
-		ExpiresIn:    int64(tokenPair.AccessToken.ExpiresIn.Seconds()),
+		ExpiresIn:    durationpb.New(tokenPair.AccessToken.ExpiresIn),
 	}, nil
 }
 
@@ -253,18 +257,17 @@ func (s *AuthService) Logout(ctx context.Context, req *authV1.LogoutRequest) (*e
 		RefreshToken: req.GetRefreshToken(),
 	}
 
-	//	Normalize request body
-	body.Normalize()
-
 	//	Validate request body
-	if err := body.Validate(); err != nil {
-		if !errs.IsValidation(err) {
+	if err := s.validator.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
 			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
 
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, response.ToGRPCValidationErr(err)
 	}
 
 	hash := s.tokenManager.HashToken(body.RefreshToken)
@@ -294,18 +297,17 @@ func (s *AuthService) Refresh(
 		RefreshToken: req.GetRefreshToken(),
 	}
 
-	//	Normalize request body
-	body.Normalize()
-
 	//	Validate request body
-	if err := body.Validate(); err != nil {
-		if !errs.IsValidation(err) {
+	if err := s.validator.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
 			log.Error("internal validation error", zap.Error(err))
 
 			return nil, status.Error(codes.Internal, message.ErrInternal)
 		}
 
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, response.ToGRPCValidationErr(err)
 	}
 
 	var tokenPair jwt.TokenPair
@@ -374,5 +376,6 @@ func (s *AuthService) Refresh(
 	return &authV1.RefreshResponse{
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
+		ExpiresIn:    durationpb.New(tokenPair.AccessToken.ExpiresIn),
 	}, nil
 }

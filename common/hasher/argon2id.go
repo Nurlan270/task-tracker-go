@@ -6,32 +6,48 @@ import (
 	"github.com/alexedwards/argon2id"
 )
 
-type ArgonHasher struct{}
-
-func NewArgonHasher() *ArgonHasher {
-	return &ArgonHasher{}
+type ArgonHasher struct {
+	params *ArgonParams
+	sem    chan struct{}
 }
 
-// Default argon2id hashing parameters.
-var params = &argon2id.Params{
-	Memory:      32 * 1024, // 32 MiB
-	Iterations:  2,
-	Parallelism: 2,
-	SaltLength:  16,
-	KeyLength:   32,
+func NewArgonHasher(params *ArgonParams) *ArgonHasher {
+	if params == nil {
+		params = NewArgonParams(32*1024, 2, 2, 16, 32, 3)
+	}
+
+	return &ArgonHasher{
+		params: params,
+		sem:    make(chan struct{}, params.SemCap),
+	}
 }
 
-//	Semaphore capacity = 2
-//
-// Max. 2 concurrent requests can hash password at the same time
-// which will lead in 64 MiB memory usage; It's used to avoid memory overflow.
-var sem = make(chan struct{}, 2)
+type ArgonParams struct {
+	//	Describes the core parameters used by the Argon2id algorithm
+	core *argon2id.Params
+
+	//	Semaphore capacity. The Default value is 3. It's used to prevent memory overflow
+	SemCap int
+}
+
+func NewArgonParams(mem, iter uint32, parallel uint8, saltLen, keyLen uint32, semCap int) *ArgonParams {
+	return &ArgonParams{
+		core: &argon2id.Params{
+			Memory:      mem,
+			Iterations:  iter,
+			Parallelism: parallel,
+			SaltLength:  saltLen,
+			KeyLength:   keyLen,
+		},
+		SemCap: semCap,
+	}
+}
 
 func (h ArgonHasher) Hash(v string) (string, error) {
-	sem <- struct{}{}
-	defer func() { <-sem }()
+	h.sem <- struct{}{}
+	defer func() { <-h.sem }()
 
-	hash, err := argon2id.CreateHash(v, params)
+	hash, err := argon2id.CreateHash(v, h.params.core)
 	if err != nil {
 		return "", fmt.Errorf("argon2id: failed to create hash: %w", err)
 	}
@@ -40,8 +56,8 @@ func (h ArgonHasher) Hash(v string) (string, error) {
 }
 
 func (h ArgonHasher) Verify(v, hash string) (bool, error) {
-	sem <- struct{}{}
-	defer func() { <-sem }()
+	h.sem <- struct{}{}
+	defer func() { <-h.sem }()
 
 	match, err := argon2id.ComparePasswordAndHash(v, hash)
 	if err != nil {

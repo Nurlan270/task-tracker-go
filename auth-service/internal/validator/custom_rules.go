@@ -1,19 +1,22 @@
-package request
+package validator
 
 import (
 	"unicode"
 
-	valid "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/Nurlan270/task-tracker-go/common/validator"
+
+	gpv "github.com/go-playground/validator/v10"
 )
 
-func validateName(value any) error {
-	name, ok := value.(string)
-	if !ok {
-		return valid.NewError(
-			"validation_name",
-			"must be a string",
-		)
+func NameCustomRule() validator.CustomRule {
+	return validator.CustomRule{
+		TagName: "name",
+		Fn:      validateName,
 	}
+}
+
+func validateName(fl gpv.FieldLevel) bool {
+	name := fl.Field().String()
 
 	for _, r := range name {
 		switch {
@@ -33,12 +36,9 @@ func validateName(value any) error {
 			continue
 
 		default:
-			return valid.NewError(
-				"validation_name",
-				"contains unsupported characters",
-			)
+			return false
 		}
 	}
 
-	return nil
+	return true
 }

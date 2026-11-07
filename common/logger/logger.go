@@ -10,8 +10,6 @@ import (
 	"github.com/iancoleman/strcase"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/Nurlan270/task-tracker-go/common/config"
 )
 
 const (
@@ -19,6 +17,11 @@ const (
 	envLocal = "local"
 	envProd  = "prod"
 )
+
+type Config interface {
+	GetAppEnv() string
+	GetAppName() string
+}
 
 type Logger struct {
 	*zap.Logger
@@ -31,7 +34,7 @@ var (
 	once         sync.Once
 )
 
-func Init(cfg config.Config) {
+func Init(cfg Config) {
 	once.Do(func() {
 		env := cfg.GetAppEnv()
 

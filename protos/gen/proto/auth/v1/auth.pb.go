@@ -9,6 +9,7 @@ package auth_v1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
@@ -92,7 +93,7 @@ type RegisterResponse struct {
 	// user's refresh token
 	RefreshToken string `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	// access token's expiration in seconds
-	ExpiresIn     int64 `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	ExpiresIn     *durationpb.Duration `protobuf:"bytes,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,11 +142,11 @@ func (x *RegisterResponse) GetRefreshToken() string {
 	return ""
 }
 
-func (x *RegisterResponse) GetExpiresIn() int64 {
+func (x *RegisterResponse) GetExpiresIn() *durationpb.Duration {
 	if x != nil {
 		return x.ExpiresIn
 	}
-	return 0
+	return nil
 }
 
 type LoginRequest struct {
@@ -209,7 +210,7 @@ type LoginResponse struct {
 	// user's refresh token
 	RefreshToken string `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	// access token's expiration in seconds
-	ExpiresIn     int64 `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	ExpiresIn     *durationpb.Duration `protobuf:"bytes,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -258,11 +259,11 @@ func (x *LoginResponse) GetRefreshToken() string {
 	return ""
 }
 
-func (x *LoginResponse) GetExpiresIn() int64 {
+func (x *LoginResponse) GetExpiresIn() *durationpb.Duration {
 	if x != nil {
 		return x.ExpiresIn
 	}
-	return 0
+	return nil
 }
 
 type LogoutRequest struct {
@@ -360,7 +361,9 @@ type RefreshResponse struct {
 	// new access token
 	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	// new refresh token
-	RefreshToken  string `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	RefreshToken string `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	// new access token's expiration in seconds
+	ExpiresIn     *durationpb.Duration `protobuf:"bytes,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -409,35 +412,44 @@ func (x *RefreshResponse) GetRefreshToken() string {
 	return ""
 }
 
+func (x *RefreshResponse) GetExpiresIn() *durationpb.Duration {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return nil
+}
+
 var File_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x12auth/v1/auth.proto\x12\aauth.v1\x1a\x1bgoogle/protobuf/empty.proto\"W\n" +
+	"\x12auth/v1/auth.proto\x12\aauth.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/duration.proto\"W\n" +
 	"\x0fRegisterRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"y\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"\x94\x01\n" +
 	"\x10RegisterResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x128\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x03R\texpiresIn\"@\n" +
+	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"v\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x91\x01\n" +
 	"\rLoginResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x1d\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x128\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x03R\texpiresIn\"4\n" +
+	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn\"4\n" +
 	"\rLogoutRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"5\n" +
 	"\x0eRefreshRequest\x12#\n" +
-	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"Y\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"\x93\x01\n" +
 	"\x0fRefreshResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken2\xfe\x01\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x128\n" +
+	"\n" +
+	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn2\xfe\x01\n" +
 	"\vAuthService\x12?\n" +
 	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponse\x126\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\x128\n" +
@@ -458,29 +470,33 @@ func file_auth_v1_auth_proto_rawDescGZIP() []byte {
 
 var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_auth_v1_auth_proto_goTypes = []any{
-	(*RegisterRequest)(nil),  // 0: auth.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 1: auth.v1.RegisterResponse
-	(*LoginRequest)(nil),     // 2: auth.v1.LoginRequest
-	(*LoginResponse)(nil),    // 3: auth.v1.LoginResponse
-	(*LogoutRequest)(nil),    // 4: auth.v1.LogoutRequest
-	(*RefreshRequest)(nil),   // 5: auth.v1.RefreshRequest
-	(*RefreshResponse)(nil),  // 6: auth.v1.RefreshResponse
-	(*emptypb.Empty)(nil),    // 7: google.protobuf.Empty
+	(*RegisterRequest)(nil),     // 0: auth.v1.RegisterRequest
+	(*RegisterResponse)(nil),    // 1: auth.v1.RegisterResponse
+	(*LoginRequest)(nil),        // 2: auth.v1.LoginRequest
+	(*LoginResponse)(nil),       // 3: auth.v1.LoginResponse
+	(*LogoutRequest)(nil),       // 4: auth.v1.LogoutRequest
+	(*RefreshRequest)(nil),      // 5: auth.v1.RefreshRequest
+	(*RefreshResponse)(nil),     // 6: auth.v1.RefreshResponse
+	(*durationpb.Duration)(nil), // 7: google.protobuf.Duration
+	(*emptypb.Empty)(nil),       // 8: google.protobuf.Empty
 }
 var file_auth_v1_auth_proto_depIdxs = []int32{
-	0, // 0: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
-	2, // 1: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
-	4, // 2: auth.v1.AuthService.Logout:input_type -> auth.v1.LogoutRequest
-	5, // 3: auth.v1.AuthService.Refresh:input_type -> auth.v1.RefreshRequest
-	1, // 4: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
-	3, // 5: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
-	7, // 6: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	6, // 7: auth.v1.AuthService.Refresh:output_type -> auth.v1.RefreshResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	7, // 0: auth.v1.RegisterResponse.expires_in:type_name -> google.protobuf.Duration
+	7, // 1: auth.v1.LoginResponse.expires_in:type_name -> google.protobuf.Duration
+	7, // 2: auth.v1.RefreshResponse.expires_in:type_name -> google.protobuf.Duration
+	0, // 3: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
+	2, // 4: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
+	4, // 5: auth.v1.AuthService.Logout:input_type -> auth.v1.LogoutRequest
+	5, // 6: auth.v1.AuthService.Refresh:input_type -> auth.v1.RefreshRequest
+	1, // 7: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
+	3, // 8: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
+	8, // 9: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	6, // 10: auth.v1.AuthService.Refresh:output_type -> auth.v1.RefreshResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_auth_v1_auth_proto_init() }

@@ -5,6 +5,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/common/database"
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
+	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
@@ -16,6 +17,9 @@ import (
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/repository/postgres"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/service"
+	cr "github.com/Nurlan270/task-tracker-go/auth-service/internal/validator"
+
+	gpv "github.com/go-playground/validator/v10"
 )
 
 type diContainer struct {
@@ -26,6 +30,7 @@ type diContainer struct {
 	db           *gorm.DB
 	hasher       hasher.Hasher
 	tokenManager *jwt.TokenManager
+	validator    *validator.Validate
 
 	//	GRPC
 	grpcSrv *grpc.Server
@@ -54,6 +59,19 @@ func (c *diContainer) DB() *gorm.DB {
 	}
 
 	return c.db
+}
+
+func (c *diContainer) Validator() *validator.Validate {
+	if c.validator == nil {
+		valid := validator.New(gpv.WithRequiredStructEnabled())
+
+		valid.RegisterCustomRules(cr.NameCustomRule())
+		valid.RegisterCustomMessages(cr.Messages)
+
+		c.validator = valid
+	}
+
+	return c.validator
 }
 
 func (c *diContainer) GRPCServer() *grpc.Server {
@@ -95,7 +113,14 @@ func (c *diContainer) TokenRepo() repository.TokenRepository {
 
 func (c *diContainer) AuthService() *service.AuthService {
 	if c.authSvc == nil {
-		c.authSvc = service.NewAuthService(c.TokenManager(), c.Hasher(), c.DB(), c.UserRepo(), c.TokenRepo())
+		c.authSvc = service.NewAuthService(
+			c.Validator(),
+			c.TokenManager(),
+			c.Hasher(),
+			c.DB(),
+			c.UserRepo(),
+			c.TokenRepo(),
+		)
 	}
 
 	return c.authSvc
@@ -103,7 +128,7 @@ func (c *diContainer) AuthService() *service.AuthService {
 
 func (c *diContainer) Hasher() hasher.Hasher {
 	if c.hasher == nil {
-		c.hasher = hasher.NewArgonHasher()
+		c.hasher = hasher.NewArgonHasher(nil)
 	}
 
 	return c.hasher

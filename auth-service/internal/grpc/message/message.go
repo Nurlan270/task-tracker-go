@@ -1,8 +1,9 @@
 package message
 
 var (
-	ErrUserNotFound      = "User with provided credentials was not found."
-	ErrUserAlreadyExists = "User with provided credentials already exists."
+	ErrUserNotFound = "User with provided credentials does not exists."
+
+	ErrEmailTaken = "This email address is already taken."
 
 	ErrRefreshTokenInvalid = "Invalid refresh token."
 
