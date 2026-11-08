@@ -2,17 +2,18 @@ package service
 
 import (
 	"context"
+	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"testing"
 	"time"
 
+	"github.com/Nurlan270/task-tracker-go/common/config"
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
-	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/testutils/suite"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/Nurlan270/task-tracker-go/auth-service/internal/config"
+	appcfg "github.com/Nurlan270/task-tracker-go/auth-service/internal/config"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/message"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/jwt"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/models"
@@ -43,10 +44,17 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	//	Load config
+	cfg := config.MustLoadYML[appcfg.Config]("../../config/test.yml")
+
+	//	Init noop logger
+	logger.InitNoop()
+
+	//	Setup common suite
 	s.SetPostgresContainerConfig(&pg.ContainerConfig{
-		Name:     "auth",
-		User:     "auth_user",
-		Password: "qwerty123",
+		Name:     cfg.Database.Name,
+		User:     cfg.Database.User,
+		Password: cfg.Database.Password,
 		Img:      "postgres:18-alpine",
 	})
 
@@ -60,11 +68,14 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 	s.userRepo = postgres.NewUserRepository(s.DB())
 	s.tokenRepo = postgres.NewTokenRepository(s.DB())
 
+	//	Token manager
 	s.tokenManager = jwt.NewTokenManager(jwt.Config{
-		AccessTTL:  15 * time.Minute,
-		RefreshTTL: 7 * 24 * time.Hour, // 7 days
+		AccessTTL:  cfg.JWT.AccessTTL,
+		RefreshTTL: cfg.JWT.RefreshTTL,
+		Secret:     cfg.JWT.Secret,
 	})
 
+	//	Hasher
 	s.hasher = hasher.NewArgonHasher(nil)
 
 	//	Validator
@@ -77,9 +88,6 @@ func (s *AuthServiceTestSuite) SetupSuite() {
 
 	//	Service
 	s.authSvc = NewAuthService(s.validator, s.tokenManager, s.hasher, s.DB(), s.userRepo, s.tokenRepo)
-
-	// fixme: this is just a stub, it should be fixed
-	logger.Init(config.Config{})
 }
 
 func (s *AuthServiceTestSuite) SetupTest() {

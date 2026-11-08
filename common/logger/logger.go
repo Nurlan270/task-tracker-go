@@ -34,6 +34,7 @@ var (
 	once         sync.Once
 )
 
+// Init initializes new logger based on environment
 func Init(cfg Config) {
 	once.Do(func() {
 		env := cfg.GetAppEnv()
@@ -55,12 +56,23 @@ func Init(cfg Config) {
 	})
 }
 
+// InitNoop initializes new noop logger
+func InitNoop() {
+	once.Do(func() {
+		zapLogger := zap.New(zapcore.NewNopCore())
+
+		globalLogger = &Logger{
+			Logger: zapLogger,
+		}
+	})
+}
+
 // Get returns global logger's instance.
 //
 // It will panic, if logger is not initialized yet.
 func Get() *Logger {
 	if globalLogger == nil || globalLogger.Logger == nil {
-		panic("logger: call on nil logger instance, please call Init() first")
+		panic("logger: call on nil logger instance, please call Init() or InitNoop() first")
 	}
 
 	return globalLogger

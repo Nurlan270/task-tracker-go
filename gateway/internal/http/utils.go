@@ -44,16 +44,15 @@ func SetTokenCookies(c *gin.Context, accessToken, refreshToken string, expiresIn
 // FlushTokenCookies deletes token cookies
 func FlushTokenCookies(c *gin.Context) {
 	for _, cookie := range []struct {
-		name  string
-		value string
-		path  string
+		name string
+		path string
 	}{
-		{AccessCookieName, "", accessCookiePath},
-		{RefreshCookieName, "", refreshCookiePath},
+		{AccessCookieName, accessCookiePath},
+		{RefreshCookieName, refreshCookiePath},
 	} {
 		c.SetCookieData(&http.Cookie{
 			Name:     cookie.name,
-			Value:    url.QueryEscape(cookie.value),
+			Value:    "",
 			Path:     cookie.path,
 			Domain:   "",
 			Expires:  time.Unix(0, 0),

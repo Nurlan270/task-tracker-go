@@ -1,0 +1,13 @@
+app:
+  env: "test"
+  name: "auth-service"
+
+database:
+  name: "auth"
+  user: "auth_user"
+  password: "qwerty123"
+
+jwt:
+  secret: "some-secret-123"
+  access_ttl: 15m
+  refresh_ttl: 168h # 7 days

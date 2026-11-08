@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// MustLoad fills Config with data from configuration file and .env file.
+// MustLoad fills config with data from configuration file and .env file.
 //
 // It will panic if there's an error while loading the config.
 func MustLoad[C any]() *C {
@@ -21,7 +21,7 @@ func MustLoad[C any]() *C {
 	return cfg
 }
 
-// Load fills Config with data from configuration file and .env file.
+// Load fills config with data from configuration file and .env file.
 func Load[C any]() (*C, error) {
 	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf("failed to load env file: %w", err)
@@ -32,6 +32,29 @@ func Load[C any]() (*C, error) {
 		return nil, errors.New("CONFIG_PATH environment variable not set")
 	}
 
+	var cfg C
+
+	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to read config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+// MustLoadYML fills config with data from YAML configuration file.
+//
+// It will panic if there's an error while loading the config.
+func MustLoadYML[C any](path string) *C {
+	cfg, err := LoadYML[C](path)
+	if err != nil {
+		panic(err)
+	}
+
+	return cfg
+}
+
+// LoadYML fills config with data from YAML configuration file.
+func LoadYML[C any](path string) (*C, error) {
 	var cfg C
 
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
