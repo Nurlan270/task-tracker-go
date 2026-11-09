@@ -5,7 +5,7 @@ var (
 
 	ErrEmailTaken = "This email address is already taken."
 
-	ErrRefreshTokenInvalid = "Invalid refresh token."
+	ErrTokenInvalid = "Token is invalid."
 
 	ErrInternal = "Something went wrong, please try again later."
 )

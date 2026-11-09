@@ -34,7 +34,7 @@ var (
 	once         sync.Once
 )
 
-// Init initializes new logger based on environment
+// Init initializes new logger based on environment.
 func Init(cfg Config) {
 	once.Do(func() {
 		env := cfg.GetAppEnv()
@@ -56,7 +56,7 @@ func Init(cfg Config) {
 	})
 }
 
-// InitNoop initializes new noop logger
+// InitNoop initializes new noop logger.
 func InitNoop() {
 	once.Do(func() {
 		zapLogger := zap.New(zapcore.NewNopCore())

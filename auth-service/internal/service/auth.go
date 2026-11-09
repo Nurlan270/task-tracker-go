@@ -276,7 +276,7 @@ func (s *AuthService) Logout(ctx context.Context, req *authV1.LogoutRequest) (*e
 	if err := s.tokenRepo.MarkRefreshAsRevokedByHash(ctx, hash); err != nil {
 		if errors.Is(err, errs.ErrRefreshTokenNotFound) {
 			//	Provided refresh token is invalid
-			return &emptypb.Empty{}, status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
+			return &emptypb.Empty{}, status.Error(codes.Unauthenticated, message.ErrTokenInvalid)
 		}
 
 		log.Error("failed to mark refresh token as revoked", zap.Error(err))
@@ -317,25 +317,25 @@ func (s *AuthService) Refresh(
 
 		hash := s.tokenManager.HashToken(body.RefreshToken)
 
-		//	Mark old refresh token as revoked
-		if err := s.tokenRepo.MarkRefreshAsRevokedByHash(txCtx, hash); err != nil {
-			if errors.Is(err, errs.ErrRefreshTokenNotFound) {
-				return status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
-			}
-
-			log.Error("failed to mark refresh token as revoked", zap.Error(err))
-
-			return status.Error(codes.Internal, message.ErrInternal)
-		}
-
 		//	Get old refresh from DB with associated user data
 		dbRefresh, err := s.tokenRepo.GetRefreshByHashWithUser(txCtx, hash)
 		if err != nil {
 			if errors.Is(err, errs.ErrRefreshTokenNotFound) {
-				return status.Error(codes.Unauthenticated, message.ErrRefreshTokenInvalid)
+				return status.Error(codes.Unauthenticated, message.ErrTokenInvalid)
 			}
 
 			log.Error("failed to find refresh by hash", zap.Error(err))
+
+			return status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		//	Mark old refresh token as revoked
+		if err = s.tokenRepo.MarkRefreshAsRevokedByHash(txCtx, hash); err != nil {
+			if errors.Is(err, errs.ErrRefreshTokenNotFound) {
+				return status.Error(codes.Unauthenticated, message.ErrTokenInvalid)
+			}
+
+			log.Error("failed to mark refresh token as revoked", zap.Error(err))
 
 			return status.Error(codes.Internal, message.ErrInternal)
 		}
@@ -377,5 +377,44 @@ func (s *AuthService) Refresh(
 		AccessToken:  tokenPair.AccessToken.Value,
 		RefreshToken: tokenPair.RefreshToken.Value,
 		ExpiresIn:    durationpb.New(tokenPair.AccessToken.ExpiresIn),
+	}, nil
+}
+
+func (s *AuthService) User(ctx context.Context, req *authV1.UserRequest) (*authV1.UserResponse, error) {
+	log := logger.Get().SetOp("User")
+
+	body := request.GetUser{
+		AccessToken: req.GetAccessToken(),
+	}
+
+	//	Validate request body
+	if err := s.validator.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
+			log.Error("internal validation error", zap.Error(err))
+
+			return nil, status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil, response.ToGRPCValidationErr(err)
+	}
+
+	//	Parse token
+	claims, err := s.tokenManager.Parse(body.AccessToken)
+	if err != nil {
+		if errors.Is(err, errs.ErrInternal) {
+			log.Error("failed to parse token", zap.Error(err))
+
+			return nil, status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil, status.Error(codes.Unauthenticated, message.ErrTokenInvalid)
+	}
+
+	return &authV1.UserResponse{
+		Id:    uint64(claims["user_id"].(float64)),
+		Name:  claims["name"].(string),
+		Email: claims["email"].(string),
 	}, nil
 }

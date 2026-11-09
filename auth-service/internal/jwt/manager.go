@@ -14,8 +14,6 @@ import (
 	errs "github.com/Nurlan270/task-tracker-go/auth-service/internal/errors"
 )
 
-const issuer = "auth-service.jwt.token-manager"
-
 var signingMethod = jwt.SigningMethodHS256
 
 type Claims = jwt.MapClaims
@@ -49,8 +47,9 @@ func (m *TokenManager) Generate(c Claims) (TokenPair, error) {
 	//	default claims
 	claims := jwt.MapClaims{
 		"exp": time.Now().Add(m.cfg.AccessTTL).Unix(),
+		"nbf": time.Now().Unix(),
 		"iat": time.Now().Unix(),
-		"iss": issuer,
+		"iss": m.cfg.Issuer,
 	}
 
 	//	add custom claims
@@ -86,8 +85,11 @@ func (m *TokenManager) Generate(c Claims) (TokenPair, error) {
 // Parse parses provided tokenString and fetches its claims.
 func (m *TokenManager) Parse(tokenString string) (Claims, error) {
 	opts := []jwt.ParserOption{
-		jwt.WithIssuer(issuer),
 		jwt.WithValidMethods([]string{signingMethod.Alg()}),
+		jwt.WithIssuer(m.cfg.Issuer),
+		jwt.WithExpirationRequired(),
+		jwt.WithNotBeforeRequired(),
+		jwt.WithIssuedAt(),
 	}
 
 	keyFunc := func(token *jwt.Token) (any, error) {
@@ -96,27 +98,17 @@ func (m *TokenManager) Parse(tokenString string) (Claims, error) {
 
 	token, err := jwt.Parse(tokenString, keyFunc, opts...)
 	if err != nil {
-		switch {
-		//	todo: maybe add invalid issuer err too, and return some general err - ErrTokenInvalid
-		case errors.Is(err, jwt.ErrTokenMalformed),
-			errors.Is(err, jwt.ErrTokenSignatureInvalid),
-			errors.Is(err, jwt.ErrTokenExpired),
-			errors.Is(err, jwt.ErrTokenNotValidYet):
-			return nil, err
-		default:
-			return nil, errors.Join(errs.ErrInternal, err)
-		}
+		return nil, errs.ErrTokenInvalid
+	} else if !token.Valid {
+		return nil, errs.ErrTokenInvalid
 	}
 
-	//nolint:staticcheck
-	if claims, ok := token.Claims.(Claims); ok && token.Valid {
-		return claims, nil
-	} else {
-		return nil, errors.Join(
-			errs.ErrInternal,
-			errors.New("unable to retrieve claims from token"),
-		)
+	claims, ok := token.Claims.(Claims)
+	if !ok {
+		return nil, errors.Join(errs.ErrInternal, errors.New("failed to convert claims"))
 	}
+
+	return claims, nil
 }
 
 // HashToken hashes provided token using SHA256 hashing algorithm.

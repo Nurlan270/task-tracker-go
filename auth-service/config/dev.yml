@@ -13,5 +13,6 @@ grpc:
   timeout: 15s
 
 jwt:
+  issuer: "auth-service.jwt.token-manager"
   access_ttl: 15m
   refresh_ttl: 168h # 7 days

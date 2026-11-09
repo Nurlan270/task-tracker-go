@@ -2,16 +2,18 @@ package service
 
 import (
 	"context"
-	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"testing"
 	"time"
 
 	"github.com/Nurlan270/task-tracker-go/common/config"
 	"github.com/Nurlan270/task-tracker-go/common/hasher"
+	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/testutils/suite"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	appcfg "github.com/Nurlan270/task-tracker-go/auth-service/internal/config"
 	"github.com/Nurlan270/task-tracker-go/auth-service/internal/grpc/message"
@@ -312,6 +314,129 @@ func (s *AuthServiceTestSuite) TestLogout() {
 		s.Require().Error(err)
 		s.Require().Empty(resp)
 		s.Require().Equal(codes.Unauthenticated, status.Code(err))
-		s.Require().ErrorContains(err, message.ErrRefreshTokenInvalid)
+		s.Require().ErrorContains(err, message.ErrTokenInvalid)
+	})
+}
+
+func (s *AuthServiceTestSuite) TestRefresh() {
+	s.Run("it should refresh with valid refresh token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Register so there's actually a valid refresh token in DB
+		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
+			Name:     "John",
+			Email:    "john@mail.com",
+			Password: "qwerty123",
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(tokenPair)
+
+		expected := &authV1.RefreshResponse{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
+		}
+
+		//	Refresh
+		actual, err := s.authSvc.Refresh(ctx, &authV1.RefreshRequest{
+			RefreshToken: tokenPair.RefreshToken,
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(actual)
+		s.Require().False(cmp.Equal(expected, actual, protocmp.Transform()))
+	})
+
+	s.Run("it should not refresh with invalid refresh token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		resp, err := s.authSvc.Refresh(ctx, &authV1.RefreshRequest{
+			RefreshToken: "invalid-refresh-token",
+		})
+
+		s.Require().Error(err)
+		s.Require().Nil(resp)
+		s.Require().Equal(codes.Unauthenticated, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrTokenInvalid)
+	})
+}
+
+func (s *AuthServiceTestSuite) TestUser() {
+	s.Run("it should return user with valid access token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	User
+		user := &models.User{
+			Name:     "John",
+			Email:    "john@mail.com",
+			Password: "qwerty123",
+		}
+
+		//	Register new user
+		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
+			Name:     user.Name,
+			Email:    user.Email,
+			Password: user.Password,
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(tokenPair)
+
+		expected := &authV1.UserResponse{
+			Name:  user.Name,
+			Email: user.Email,
+		}
+
+		//	Get user
+		actual, err := s.authSvc.User(ctx, &authV1.UserRequest{
+			AccessToken: tokenPair.AccessToken,
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(actual)
+
+		if diff := cmp.Diff(
+			expected,
+			actual,
+			protocmp.Transform(),
+			protocmp.IgnoreFields(&authV1.UserResponse{}, "id"),
+		); diff != "" {
+			s.T().Errorf("authSvc.User() mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	s.Run("it should not return user with invalid access token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	User
+		user := &models.User{
+			Name:     "John",
+			Email:    "john@mail.com",
+			Password: "qwerty123",
+		}
+
+		//	Register new user
+		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
+			Name:     user.Name,
+			Email:    user.Email,
+			Password: user.Password,
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(tokenPair)
+
+		//	Get user
+		resp, err := s.authSvc.User(ctx, &authV1.UserRequest{
+			AccessToken: "invalid-access-token",
+		})
+
+		s.Require().Error(err)
+		s.Require().Nil(resp)
+		s.Require().Equal(codes.Unauthenticated, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrTokenInvalid)
 	})
 }

@@ -419,6 +419,114 @@ func (x *RefreshResponse) GetExpiresIn() *durationpb.Duration {
 	return nil
 }
 
+type UserRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user's access token
+	AccessToken   string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserRequest) Reset() {
+	*x = UserRequest{}
+	mi := &file_auth_v1_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserRequest) ProtoMessage() {}
+
+func (x *UserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserRequest.ProtoReflect.Descriptor instead.
+func (*UserRequest) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UserRequest) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+type UserResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user's id
+	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// user's name
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// user's email address
+	Email         string `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserResponse) Reset() {
+	*x = UserResponse{}
+	mi := &file_auth_v1_auth_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserResponse) ProtoMessage() {}
+
+func (x *UserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserResponse.ProtoReflect.Descriptor instead.
+func (*UserResponse) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UserResponse) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UserResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UserResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
 var File_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_auth_v1_auth_proto_rawDesc = "" +
@@ -449,12 +557,19 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x128\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn2\xfe\x01\n" +
+	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn\"0\n" +
+	"\vUserRequest\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\"H\n" +
+	"\fUserResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email2\xb3\x02\n" +
 	"\vAuthService\x12?\n" +
 	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponse\x126\n" +
 	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\x128\n" +
 	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\x12<\n" +
-	"\aRefresh\x12\x17.auth.v1.RefreshRequest\x1a\x18.auth.v1.RefreshResponseBGZEgithub.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1;auth_v1b\x06proto3"
+	"\aRefresh\x12\x17.auth.v1.RefreshRequest\x1a\x18.auth.v1.RefreshResponse\x123\n" +
+	"\x04User\x12\x14.auth.v1.UserRequest\x1a\x15.auth.v1.UserResponseBGZEgithub.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1;auth_v1b\x06proto3"
 
 var (
 	file_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -468,7 +583,7 @@ func file_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_auth_v1_auth_proto_rawDescData
 }
 
-var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_auth_v1_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),     // 0: auth.v1.RegisterRequest
 	(*RegisterResponse)(nil),    // 1: auth.v1.RegisterResponse
@@ -477,26 +592,30 @@ var file_auth_v1_auth_proto_goTypes = []any{
 	(*LogoutRequest)(nil),       // 4: auth.v1.LogoutRequest
 	(*RefreshRequest)(nil),      // 5: auth.v1.RefreshRequest
 	(*RefreshResponse)(nil),     // 6: auth.v1.RefreshResponse
-	(*durationpb.Duration)(nil), // 7: google.protobuf.Duration
-	(*emptypb.Empty)(nil),       // 8: google.protobuf.Empty
+	(*UserRequest)(nil),         // 7: auth.v1.UserRequest
+	(*UserResponse)(nil),        // 8: auth.v1.UserResponse
+	(*durationpb.Duration)(nil), // 9: google.protobuf.Duration
+	(*emptypb.Empty)(nil),       // 10: google.protobuf.Empty
 }
 var file_auth_v1_auth_proto_depIdxs = []int32{
-	7, // 0: auth.v1.RegisterResponse.expires_in:type_name -> google.protobuf.Duration
-	7, // 1: auth.v1.LoginResponse.expires_in:type_name -> google.protobuf.Duration
-	7, // 2: auth.v1.RefreshResponse.expires_in:type_name -> google.protobuf.Duration
-	0, // 3: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
-	2, // 4: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
-	4, // 5: auth.v1.AuthService.Logout:input_type -> auth.v1.LogoutRequest
-	5, // 6: auth.v1.AuthService.Refresh:input_type -> auth.v1.RefreshRequest
-	1, // 7: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
-	3, // 8: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
-	8, // 9: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
-	6, // 10: auth.v1.AuthService.Refresh:output_type -> auth.v1.RefreshResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	9,  // 0: auth.v1.RegisterResponse.expires_in:type_name -> google.protobuf.Duration
+	9,  // 1: auth.v1.LoginResponse.expires_in:type_name -> google.protobuf.Duration
+	9,  // 2: auth.v1.RefreshResponse.expires_in:type_name -> google.protobuf.Duration
+	0,  // 3: auth.v1.AuthService.Register:input_type -> auth.v1.RegisterRequest
+	2,  // 4: auth.v1.AuthService.Login:input_type -> auth.v1.LoginRequest
+	4,  // 5: auth.v1.AuthService.Logout:input_type -> auth.v1.LogoutRequest
+	5,  // 6: auth.v1.AuthService.Refresh:input_type -> auth.v1.RefreshRequest
+	7,  // 7: auth.v1.AuthService.User:input_type -> auth.v1.UserRequest
+	1,  // 8: auth.v1.AuthService.Register:output_type -> auth.v1.RegisterResponse
+	3,  // 9: auth.v1.AuthService.Login:output_type -> auth.v1.LoginResponse
+	10, // 10: auth.v1.AuthService.Logout:output_type -> google.protobuf.Empty
+	6,  // 11: auth.v1.AuthService.Refresh:output_type -> auth.v1.RefreshResponse
+	8,  // 12: auth.v1.AuthService.User:output_type -> auth.v1.UserResponse
+	8,  // [8:13] is the sub-list for method output_type
+	3,  // [3:8] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_auth_v1_auth_proto_init() }
@@ -510,7 +629,7 @@ func file_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_v1_auth_proto_rawDesc), len(file_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

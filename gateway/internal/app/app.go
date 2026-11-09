@@ -7,9 +7,6 @@ import (
 	"github.com/Nurlan270/task-tracker-go/common/config"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	appcfg "github.com/Nurlan270/task-tracker-go/gateway/internal/config"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
 	"os/signal"
@@ -36,7 +33,7 @@ func New() *App {
 func (a *App) initDeps() {
 	deps := []func(){
 		a.initLogger,
-		a.registerRoutes,
+		a.initRouter,
 	}
 
 	for _, init := range deps {
@@ -52,30 +49,8 @@ func (a *App) initLogger() {
 	})
 }
 
-func (a *App) registerRoutes() {
-	router := a.di.Gin()
-
-	//	Custom 404 handling
-	router.NoRoute(func(c *gin.Context) {
-		c.AbortWithStatusJSON(http.StatusNotFound, response.NewError(message.ErrNotFound))
-	})
-
-	//	API
-	api := router.Group("/api")
-	{
-		//	API v1
-		v1 := api.Group("/v1")
-		{
-			authHandler := a.di.AuthHandler()
-
-			//	Auth
-			auth := v1.Group("/auth")
-			auth.POST("register", authHandler.Register)
-			auth.POST("login", authHandler.Login)
-			auth.POST("logout", authHandler.Logout)
-			auth.POST("refresh", authHandler.Refresh)
-		}
-	}
+func (a *App) initRouter() {
+	a.di.Router().InitRouter()
 }
 
 func (a *App) Run() {

@@ -6,6 +6,8 @@ import (
 	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/config"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/handlers"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/router"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
 	authV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1"
 	"github.com/gin-gonic/gin"
@@ -19,8 +21,15 @@ type diContainer struct {
 	//	Configuration
 	cfg *config.Config
 
-	//	Server
-	srv *http.Server
+	//	HTTP Core
+	srv    *http.Server
+	router *router.Router
+
+	//	HTTP Handlers
+	authHandler *handlers.AuthHandler
+
+	//	HTTP Middlewares
+	authMW *middleware.AuthMiddleware
 
 	//	Gin
 	gin *gin.Engine
@@ -28,14 +37,11 @@ type diContainer struct {
 	//	Validator
 	validator *validator.Validate
 
-	//	GRPC
+	//	gRPC
 	authClient authV1.AuthServiceClient
 
 	//	Services
 	authSvc *service.AuthService
-
-	//	HTTP Handlers
-	authHandler *handlers.AuthHandler
 }
 
 func newDIContainer(cfg *config.Config) diContainer {
@@ -46,7 +52,7 @@ func (c *diContainer) Server() *http.Server {
 	if c.srv == nil {
 		c.srv = &http.Server{
 			Addr:         c.cfg.HTTP.GetAddr(),
-			Handler:      c.gin,
+			Handler:      c.Gin(),
 			ReadTimeout:  c.cfg.HTTP.ReadTimeout,
 			WriteTimeout: c.cfg.HTTP.WriteTimeout,
 		}
@@ -57,7 +63,10 @@ func (c *diContainer) Server() *http.Server {
 
 func (c *diContainer) Gin() *gin.Engine {
 	if c.gin == nil {
-		c.gin = gin.Default()
+		engine := gin.New()
+		engine.HandleMethodNotAllowed = true
+
+		c.gin = engine
 	}
 
 	return c.gin
@@ -105,4 +114,20 @@ func (c *diContainer) AuthHandler() *handlers.AuthHandler {
 	}
 
 	return c.authHandler
+}
+
+func (c *diContainer) AuthMW() *middleware.AuthMiddleware {
+	if c.authMW == nil {
+		c.authMW = middleware.NewAuthMiddleware(c.AuthClient())
+	}
+
+	return c.authMW
+}
+
+func (c *diContainer) Router() *router.Router {
+	if c.router == nil {
+		c.router = router.New(c.Gin(), c.AuthMW(), c.AuthHandler())
+	}
+
+	return c.router
 }

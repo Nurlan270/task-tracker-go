@@ -19,6 +19,9 @@ service AuthService {
 
   //  Refresh user's access/refresh token pair and return new ones
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
+
+  //  Fetch user's access token and return its data
+  rpc User(UserRequest) returns (UserResponse);
 }
 
 message RegisterRequest {
@@ -81,4 +84,20 @@ message RefreshResponse {
 
   //  new access token's expiration in seconds
   google.protobuf.Duration expires_in = 3;
+}
+
+message UserRequest {
+  //  user's access token
+  string access_token = 1;
+}
+
+message UserResponse {
+  //  user's id
+  uint64 id = 1;
+
+  //  user's name
+  string name = 2;
+
+  //  user's email address
+  string email = 3;
 }

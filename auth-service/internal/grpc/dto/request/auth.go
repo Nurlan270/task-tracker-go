@@ -18,3 +18,7 @@ type LogoutUser struct {
 type RefreshUser struct {
 	RefreshToken string `validate:"required"`
 }
+
+type GetUser struct {
+	AccessToken string `validate:"required"`
+}

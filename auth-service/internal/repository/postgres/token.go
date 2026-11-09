@@ -40,6 +40,8 @@ func (r *TokenRepository) GetRefreshByHashWithUser(
 
 	token, err := gorm.G[models.RefreshToken](db).
 		Preload("User", nil).
+		Where("token_hash = ?", hash).
+		Where("revoked_at IS NULL").
 		First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -69,11 +71,12 @@ func (r *TokenRepository) MarkRefreshAsRevokedByHash(ctx context.Context, hash s
 	return nil
 }
 
-func (r *TokenRepository) DeleteExpiredTokens(ctx context.Context) (int, error) {
+func (r *TokenRepository) DeleteExpiredAndRevokedTokens(ctx context.Context) (int, error) {
 	db := ctxlib.GetDB(ctx, r.db)
 
 	deleted, err := gorm.G[models.RefreshToken](db).
 		Where("expires_at <= ?", time.Now()).
+		Or("revoked_at IS NOT NULL").
 		Delete(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to delete expired refresh tokens: %w", err)

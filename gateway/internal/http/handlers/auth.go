@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	ctxlib "github.com/Nurlan270/task-tracker-go/gateway/internal/context"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
 	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
@@ -119,7 +120,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to login user", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 			return
@@ -131,7 +132,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		case codes.Unauthenticated:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
 		default:
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to login user", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 		}
@@ -151,43 +152,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	log := logger.Get().SetOp("Logout")
 
-	//	Fetch refresh token from cookie
-	refresh, err := c.Cookie(httplib.RefreshCookieName)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(message.ErrUnauthorized))
-		return
-	}
-
 	body := request.Logout{
-		RefreshToken: refresh,
-	}
-
-	//	Bind request body
-	if err = c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.NewError(message.ErrBadRequest))
-		return
-	}
-
-	//	Validate request body
-	if err = h.validator.Struct(&body); err != nil {
-		var validationErr *validator.ErrValidation
-
-		if errors.As(err, &validationErr) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMap(validationErr))
-			return
-		}
-
-		log.Error("failed to validate request", zap.Error(err))
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		return
+		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
 	}
 
 	//	Logout
-	if err = h.authSvc.Logout(c, &body); err != nil {
+	if err := h.authSvc.Logout(c, &body); err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to logout user", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 			return
@@ -199,7 +172,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		case codes.Unauthenticated:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
 		default:
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to logout user", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 		}
@@ -216,36 +189,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	log := logger.Get().SetOp("Refresh")
 
-	//	Fetch refresh token from cookie
-	refresh, err := c.Cookie(httplib.RefreshCookieName)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(message.ErrUnauthorized))
-		return
-	}
-
 	body := request.Refresh{
-		RefreshToken: refresh,
-	}
-
-	//	Bind request body
-	if err = c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.NewError(message.ErrBadRequest))
-		return
-	}
-
-	//	Validate request body
-	if err = h.validator.Struct(&body); err != nil {
-		var validationErr *validator.ErrValidation
-
-		if errors.As(err, &validationErr) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMap(validationErr))
-			return
-		}
-
-		log.Error("failed to validate request", zap.Error(err))
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		return
+		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
 	}
 
 	//	Refresh
@@ -253,7 +198,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	if err != nil {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to refresh token pair", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 			return
@@ -265,7 +210,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		case codes.Unauthenticated:
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
 		default:
-			log.Error("failed to register user", zap.Error(err))
+			log.Error("failed to refresh token pair", zap.Error(err))
 
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
 		}
@@ -280,4 +225,10 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	httplib.SetTokenCookies(c, resp.AccessToken, resp.RefreshToken, resp.ExpiresIn)
 
 	c.Status(http.StatusCreated)
+}
+
+func (h *AuthHandler) User(c *gin.Context) {
+	user := c.MustGet(ctxlib.UserCtxKey)
+
+	c.JSON(http.StatusOK, user)
 }
