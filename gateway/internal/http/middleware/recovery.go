@@ -15,5 +15,5 @@ func Recover(c *gin.Context, recovered any) {
 		logger.Get().Error("Recovered from panic", zap.String("panic", p))
 	}
 
-	c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
+	c.AbortWithStatusJSON(http.StatusInternalServerError, response.New(message.ErrInternal))
 }

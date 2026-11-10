@@ -63,3 +63,9 @@ func FlushTokenCookies(c *gin.Context) {
 		})
 	}
 }
+
+// AbortWithErr attaches passed error to the context and aborts
+func AbortWithErr(c *gin.Context, err error) {
+	c.Error(err)
+	c.Abort()
+}

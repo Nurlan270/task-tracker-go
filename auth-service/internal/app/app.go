@@ -90,7 +90,7 @@ func (a *App) startCleanupWorker(ctx context.Context) {
 				return
 
 			case <-ticker.C:
-				deleted, err := a.di.TokenRepo().DeleteExpiredAndRevokedTokens(ctx)
+				deleted, err := a.di.TokenRepo().DeleteExpiredOrRevokedTokens(ctx)
 				if err != nil {
 					log.Error("failed to delete expired tokens", zap.Error(err))
 					continue

@@ -1,24 +1,24 @@
 package request
 
 type RegisterUser struct {
-	Name     string `validate:"required,min=2,max=50,name"`
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,min=8"`
+	Name     string `json:"name" validate:"required,min=2,max=50,name"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type LoginUser struct {
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,min=8"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type LogoutUser struct {
-	RefreshToken string `validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type RefreshUser struct {
-	RefreshToken string `validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type GetUser struct {
-	AccessToken string `validate:"required"`
+	AccessToken string `json:"access_token" validate:"required"`
 }

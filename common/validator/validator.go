@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	gpv "github.com/go-playground/validator/v10"
 )
@@ -18,10 +20,14 @@ type Validate struct {
 func New(opts ...gpv.Option) *Validate {
 	v := gpv.New(opts...)
 
-	return &Validate{
+	validator := &Validate{
 		Validate:   v,
 		messageMap: messages,
 	}
+
+	validator.registerTagName()
+
+	return validator
 }
 
 type ErrValidation struct {
@@ -58,9 +64,15 @@ func (v *Validate) Struct(s any) error {
 	}
 }
 
+func (v *Validate) registerTagName() {
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		return strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+	})
+}
+
 type CustomRule struct {
 	//	Tag associated with validation function
-	TagName string
+	Tag string
 
 	//	Validation function
 	Fn gpv.Func
@@ -75,8 +87,8 @@ type CustomRule struct {
 //	- this method is not thread-safe it is intended that these all be registered prior to any validation
 func (v *Validate) RegisterCustomRules(rules ...CustomRule) {
 	for _, rule := range rules {
-		if err := v.RegisterValidation(rule.TagName, rule.Fn); err != nil {
-			panic(fmt.Sprintf("failed to register custom validation rule %q: %s", rule.TagName, err))
+		if err := v.RegisterValidation(rule.Tag, rule.Fn); err != nil {
+			panic(fmt.Sprintf("failed to register custom validation rule %q: %s", rule.Tag, err))
 		}
 	}
 }

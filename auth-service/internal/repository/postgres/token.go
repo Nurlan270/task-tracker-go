@@ -71,7 +71,7 @@ func (r *TokenRepository) MarkRefreshAsRevokedByHash(ctx context.Context, hash s
 	return nil
 }
 
-func (r *TokenRepository) DeleteExpiredAndRevokedTokens(ctx context.Context) (int, error) {
+func (r *TokenRepository) DeleteExpiredOrRevokedTokens(ctx context.Context) (int, error) {
 	db := ctxlib.GetDB(ctx, r.db)
 
 	deleted, err := gorm.G[models.RefreshToken](db).

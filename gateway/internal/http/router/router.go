@@ -1,12 +1,11 @@
 package router
 
 import (
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
+	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
+	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/handlers"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type Router struct {
@@ -32,12 +31,12 @@ func (r *Router) InitRouter() {
 
 	//	Custom 404 handling
 	r.NoRoute(func(c *gin.Context) {
-		c.AbortWithStatusJSON(http.StatusNotFound, response.NewError(message.ErrNotFound))
+		httplib.AbortWithErr(c, errs.NotFound)
 	})
 
 	//	Custom 405 handling
 	r.NoMethod(func(c *gin.Context) {
-		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, response.NewError(message.ErrMethodNotAllowed))
+		httplib.AbortWithErr(c, errs.MethodNotAllowed)
 	})
 
 	r.registerRoutes()
@@ -47,6 +46,7 @@ func (r *Router) setGlobalMiddlewares() {
 	//	Global middlewares
 	r.Use(
 		middleware.Logger(),
+		middleware.ErrorHandler(),
 		gin.CustomRecovery(middleware.Recover),
 	)
 }
@@ -67,9 +67,11 @@ func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
 	guested.POST("register", r.authH.Register)
 	guested.POST("login", r.authH.Login)
 
-	//	Authorized routes
+	//	Authorized routes (need valid access token)
 	authorized := auth.Group("/", r.authMW.RequireAuth())
 	authorized.GET("user", r.authH.User)
-	authorized.POST("logout", r.authH.Logout)
-	authorized.POST("refresh", r.authH.Refresh)
+
+	//	Semi-authorized routes (need only refresh token)
+	auth.POST("logout", r.authH.Logout)
+	auth.POST("refresh", r.authH.Refresh)
 }

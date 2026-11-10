@@ -2,7 +2,7 @@ package message
 
 var (
 	ErrInternal         = "Something went wrong, please try again later."
-	ErrBadRequest       = "Invalid request."
+	ErrBadRequest       = "Request is invalid."
 	ErrNotFound         = "Requested resource not found."
 	ErrMethodNotAllowed = "Method not allowed."
 	ErrUnauthorized     = "You are not authorized to perform this action."

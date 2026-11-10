@@ -10,8 +10,8 @@ import (
 
 func NameCustomRule() validator.CustomRule {
 	return validator.CustomRule{
-		TagName: "name",
-		Fn:      validateName,
+		Tag: "name",
+		Fn:  validateName,
 	}
 }
 

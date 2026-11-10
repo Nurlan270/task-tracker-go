@@ -81,3 +81,19 @@ func (s *AuthService) Refresh(ctx context.Context, req *request.Refresh) (respon
 		ExpiresIn:    resp.ExpiresIn.AsDuration(),
 	}, nil
 }
+
+func (s *AuthService) GetUser(ctx context.Context, req *request.GetUser) (response.GetUser, error) {
+	resp, err := s.client.User(ctx, &authV1.UserRequest{
+		AccessToken: req.AccessToken,
+	})
+
+	if err != nil {
+		return response.GetUser{}, err
+	}
+
+	return response.GetUser{
+		ID:    uint(resp.Id),
+		Name:  resp.Name,
+		Email: resp.Email,
+	}, nil
+}

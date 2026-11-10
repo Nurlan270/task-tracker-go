@@ -118,7 +118,7 @@ func (c *diContainer) AuthHandler() *handlers.AuthHandler {
 
 func (c *diContainer) AuthMW() *middleware.AuthMiddleware {
 	if c.authMW == nil {
-		c.authMW = middleware.NewAuthMiddleware(c.AuthClient())
+		c.authMW = middleware.NewAuthMiddleware(c.AuthService())
 	}
 
 	return c.authMW

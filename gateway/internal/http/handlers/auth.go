@@ -2,20 +2,16 @@ package handlers
 
 import (
 	"errors"
-	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
-	"github.com/Nurlan270/task-tracker-go/gateway/entity"
 	ctxlib "github.com/Nurlan270/task-tracker-go/gateway/internal/context"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/entity"
+	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
 	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"net/http"
+	"strings"
 )
 
 type AuthHandler struct {
@@ -31,13 +27,11 @@ func NewAuthHandler(validator *validator.Validate, authSvc *service.AuthService)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	log := logger.Get().SetOp("Register")
-
 	var body request.Register
 
 	//	Bind request body
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.NewError(message.ErrBadRequest))
+		httplib.AbortWithErr(c, errs.BadRequest)
 		return
 	}
 
@@ -46,42 +40,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		var validationErr *validator.ErrValidation
 
 		if errors.As(err, &validationErr) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMap(validationErr))
+			httplib.AbortWithErr(c, errors.Join(errs.BadRequest, validationErr))
 			return
 		}
 
-		log.Error("failed to validate request", zap.Error(err))
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
+		httplib.AbortWithErr(c, errors.Join(errs.InternalServer, err))
 		return
 	}
 
-	ctx := c.Request.Context()
-
 	//	Register
-	resp, err := h.authSvc.Register(ctx, &body)
-	safeHandleErr(ctx, err, func(err error) {
-		st, ok := status.FromError(err)
-		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to register user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-			return
-		}
-
-		switch st.Code() {
-		case codes.InvalidArgument:
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMapFromGRPC(st.Err()))
-		case codes.AlreadyExists:
-			c.AbortWithStatusJSON(http.StatusConflict, response.NewError(st.Message()))
-		default:
-			log.Error("failed to register user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		}
-
+	resp, err := h.authSvc.Register(c.Request.Context(), &body)
+	if err != nil {
+		httplib.AbortWithErr(c, err)
 		return
-	})
+	}
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)
@@ -93,13 +65,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	log := logger.Get().SetOp("Login")
-
 	var body request.Login
 
 	//	Bind request body
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.NewError(message.ErrBadRequest))
+		httplib.AbortWithErr(c, errs.BadRequest)
 		return
 	}
 
@@ -108,42 +78,20 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		var validationErr *validator.ErrValidation
 
 		if errors.As(err, &validationErr) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMap(validationErr))
+			httplib.AbortWithErr(c, errors.Join(errs.BadRequest, validationErr))
 			return
 		}
 
-		log.Error("failed to validate request", zap.Error(err))
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
+		httplib.AbortWithErr(c, errors.Join(errs.InternalServer, err))
 		return
 	}
 
-	ctx := c.Request.Context()
-
 	//	Login
-	resp, err := h.authSvc.Login(ctx, &body)
-	safeHandleErr(ctx, err, func(err error) {
-		st, ok := status.FromError(err)
-		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to login user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-			return
-		}
-
-		switch st.Code() {
-		case codes.InvalidArgument:
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMapFromGRPC(st.Err()))
-		case codes.Unauthenticated:
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
-		default:
-			log.Error("failed to login user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		}
-
+	resp, err := h.authSvc.Login(c.Request.Context(), &body)
+	if err != nil {
+		httplib.AbortWithErr(c, err)
 		return
-	})
+	}
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)
@@ -155,38 +103,24 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	log := logger.Get().SetOp("Logout")
-
-	body := request.Logout{
-		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
+	//	Fetch refresh token from cookie
+	token, err := c.Cookie(httplib.RefreshCookieName)
+	if err != nil || strings.TrimSpace(token) == "" {
+		//	Token does not exist or empty
+		httplib.AbortWithErr(c, errs.Unauthorized)
+		return
 	}
 
-	ctx := c.Request.Context()
+	body := request.Logout{
+		RefreshToken: token,
+	}
 
 	//	Logout
-	err := h.authSvc.Logout(ctx, &body)
-	safeHandleErr(ctx, err, func(err error) {
-		st, ok := status.FromError(err)
-		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to logout user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-			return
-		}
-
-		switch st.Code() {
-		case codes.InvalidArgument:
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMapFromGRPC(st.Err()))
-		case codes.Unauthenticated:
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
-		default:
-			log.Error("failed to logout user", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		}
-
+	err = h.authSvc.Logout(c.Request.Context(), &body)
+	if err != nil {
+		httplib.AbortWithErr(c, err)
 		return
-	})
+	}
 
 	//	Flush token cookies
 	httplib.FlushTokenCookies(c)
@@ -195,38 +129,24 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	log := logger.Get().SetOp("Refresh")
-
-	body := request.Refresh{
-		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
+	//	Fetch refresh token from cookie
+	token, err := c.Cookie(httplib.RefreshCookieName)
+	if err != nil || strings.TrimSpace(token) == "" {
+		//	Token does not exist or empty
+		httplib.AbortWithErr(c, errs.Unauthorized)
+		return
 	}
 
-	ctx := c.Request.Context()
+	body := request.Refresh{
+		RefreshToken: token,
+	}
 
 	//	Refresh
-	resp, err := h.authSvc.Refresh(ctx, &body)
-	safeHandleErr(ctx, err, func(err error) {
-		st, ok := status.FromError(err)
-		if !ok || st.Code() == codes.Internal {
-			log.Error("failed to refresh token pair", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-			return
-		}
-
-		switch st.Code() {
-		case codes.InvalidArgument:
-			c.AbortWithStatusJSON(http.StatusBadRequest, response.NewErrorMapFromGRPC(st.Err()))
-		case codes.Unauthenticated:
-			c.AbortWithStatusJSON(http.StatusUnauthorized, response.NewError(st.Message()))
-		default:
-			log.Error("failed to refresh token pair", zap.Error(err))
-
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.NewError(message.ErrInternal))
-		}
-
+	resp, err := h.authSvc.Refresh(c.Request.Context(), &body)
+	if err != nil {
+		httplib.AbortWithErr(c, err)
 		return
-	})
+	}
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)

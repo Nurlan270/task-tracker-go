@@ -1,6 +1,8 @@
 package response
 
-import "time"
+import (
+	"time"
+)
 
 type Register struct {
 	AccessToken  string        `json:"access_token"`
@@ -22,4 +24,10 @@ type Refresh struct {
 	AccessToken  string        `json:"access_token"`
 	RefreshToken string        `json:"refresh_token"`
 	ExpiresIn    time.Duration `json:"expires_in"`
+}
+
+type GetUser struct {
+	ID    uint   `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
