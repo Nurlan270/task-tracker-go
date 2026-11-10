@@ -3,14 +3,15 @@ module github.com/Nurlan270/task-tracker-go/auth-service
 go 1.26.10
 
 require (
-	github.com/Nurlan270/task-tracker-go/common v0.0.0-20261103130159-cb9cd1fbdea1
+	github.com/Nurlan270/task-tracker-go/common v0.0.0-20261109155627-8afd72f839e0
 	github.com/Nurlan270/task-tracker-go/protos v0.0.0-20261103130159-cb9cd1fbdea1
-	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
 	github.com/go-playground/validator/v10 v10.30.6
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/google/go-cmp v0.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	gorm.io/gorm v1.31.2
@@ -50,7 +51,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
@@ -85,7 +86,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.6.3 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect

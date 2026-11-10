@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var txCtxKey = contextKey{name: "tx"}
+var txCtxKey = &contextKey{name: "tx"}
 
 func NewTXCtx(ctx context.Context, tx *gorm.DB) context.Context {
 	return context.WithValue(ctx, txCtxKey, tx)

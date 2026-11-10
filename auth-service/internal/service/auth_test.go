@@ -361,6 +361,37 @@ func (s *AuthServiceTestSuite) TestRefresh() {
 		s.Require().Equal(codes.Unauthenticated, status.Code(err))
 		s.Require().ErrorContains(err, message.ErrTokenInvalid)
 	})
+
+	s.Run("it should not refresh with revoked refresh token", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Register so there's actually a valid refresh token in DB
+		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
+			Name:     "John",
+			Email:    "john@mail.com",
+			Password: "qwerty123",
+		})
+
+		s.Require().NoError(err)
+		s.Require().NotNil(tokenPair)
+
+		//	Revoke it by calling refresh
+		_, err = s.authSvc.Refresh(ctx, &authV1.RefreshRequest{
+			RefreshToken: tokenPair.RefreshToken,
+		})
+
+		s.Require().NoError(err)
+
+		//	Refresh again with the same refresh token
+		resp, err := s.authSvc.Refresh(ctx, &authV1.RefreshRequest{
+			RefreshToken: tokenPair.RefreshToken,
+		})
+
+		s.Require().Error(err)
+		s.Require().Nil(resp)
+		s.Require().ErrorContains(err, message.ErrTokenInvalid)
+	})
 }
 
 func (s *AuthServiceTestSuite) TestUser() {

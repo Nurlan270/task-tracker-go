@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	"github.com/Nurlan270/task-tracker-go/gateway/entity"
 	ctxlib "github.com/Nurlan270/task-tracker-go/gateway/internal/context"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
@@ -55,9 +56,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	//	Register
-	resp, err := h.authSvc.Register(c, &body)
-	if err != nil {
+	resp, err := h.authSvc.Register(ctx, &body)
+	safeHandleErr(ctx, err, func(err error) {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
 			log.Error("failed to register user", zap.Error(err))
@@ -78,7 +81,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		}
 
 		return
-	}
+	})
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)
@@ -115,9 +118,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
 	//	Login
-	resp, err := h.authSvc.Login(c, &body)
-	if err != nil {
+	resp, err := h.authSvc.Login(ctx, &body)
+	safeHandleErr(ctx, err, func(err error) {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
 			log.Error("failed to login user", zap.Error(err))
@@ -138,7 +143,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		}
 
 		return
-	}
+	})
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)
@@ -156,8 +161,11 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
 	}
 
+	ctx := c.Request.Context()
+
 	//	Logout
-	if err := h.authSvc.Logout(c, &body); err != nil {
+	err := h.authSvc.Logout(ctx, &body)
+	safeHandleErr(ctx, err, func(err error) {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
 			log.Error("failed to logout user", zap.Error(err))
@@ -178,7 +186,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		}
 
 		return
-	}
+	})
 
 	//	Flush token cookies
 	httplib.FlushTokenCookies(c)
@@ -193,9 +201,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		RefreshToken: c.MustGet(ctxlib.RefreshTokenCtxKey).(string),
 	}
 
+	ctx := c.Request.Context()
+
 	//	Refresh
-	resp, err := h.authSvc.Refresh(c, &body)
-	if err != nil {
+	resp, err := h.authSvc.Refresh(ctx, &body)
+	safeHandleErr(ctx, err, func(err error) {
 		st, ok := status.FromError(err)
 		if !ok || st.Code() == codes.Internal {
 			log.Error("failed to refresh token pair", zap.Error(err))
@@ -216,7 +226,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		}
 
 		return
-	}
+	})
 
 	//	Flush old token cookies if any
 	httplib.FlushTokenCookies(c)
@@ -228,7 +238,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 }
 
 func (h *AuthHandler) User(c *gin.Context) {
-	user := c.MustGet(ctxlib.UserCtxKey)
+	user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
 
 	c.JSON(http.StatusOK, user)
 }

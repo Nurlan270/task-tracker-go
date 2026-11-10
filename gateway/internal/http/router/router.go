@@ -40,10 +40,7 @@ func (r *Router) InitRouter() {
 		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, response.NewError(message.ErrMethodNotAllowed))
 	})
 
-	//	API v1 Routes
-	apiV1 := r.Group("/api/v1")
-
-	r.registerAuthV1Routes(apiV1)
+	r.registerRoutes()
 }
 
 func (r *Router) setGlobalMiddlewares() {
@@ -52,6 +49,13 @@ func (r *Router) setGlobalMiddlewares() {
 		middleware.Logger(),
 		gin.CustomRecovery(middleware.Recover),
 	)
+}
+
+func (r *Router) registerRoutes() {
+	//	API v1 Routes
+	apiV1 := r.Group("/api/v1")
+
+	r.registerAuthV1Routes(apiV1)
 }
 
 func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
