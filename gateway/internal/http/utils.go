@@ -1,10 +1,11 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -12,10 +13,10 @@ const (
 	RefreshCookieName = "_refresh_token"
 
 	accessCookiePath  = "/"
-	refreshCookiePath = "/api/v1/auth"
+	refreshCookiePath = "/api/v1/user"
 )
 
-// SetTokenCookies sets token cookies with specified values
+// SetTokenCookies sets token cookies with specified values.
 func SetTokenCookies(c *gin.Context, accessToken, refreshToken string, expiresIn time.Duration) {
 	//	Set access token
 	c.SetCookieData(&http.Cookie{
@@ -41,7 +42,7 @@ func SetTokenCookies(c *gin.Context, accessToken, refreshToken string, expiresIn
 	})
 }
 
-// FlushTokenCookies deletes token cookies
+// FlushTokenCookies deletes token cookies.
 func FlushTokenCookies(c *gin.Context) {
 	for _, cookie := range []struct {
 		name string
@@ -64,8 +65,8 @@ func FlushTokenCookies(c *gin.Context) {
 	}
 }
 
-// AbortWithErr attaches passed error to the context and aborts
+// AbortWithErr attaches passed error to the context and aborts.
 func AbortWithErr(c *gin.Context, err error) {
-	c.Error(err)
+	c.Error(err) //nolint:errcheck
 	c.Abort()
 }

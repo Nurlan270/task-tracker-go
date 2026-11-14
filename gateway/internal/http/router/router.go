@@ -1,11 +1,12 @@
 package router
 
 import (
+	"github.com/gin-gonic/gin"
+
 	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
 	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/handlers"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
-	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
@@ -31,12 +32,12 @@ func (r *Router) InitRouter() {
 
 	//	Custom 404 handling
 	r.NoRoute(func(c *gin.Context) {
-		httplib.AbortWithErr(c, errs.NotFound)
+		httplib.AbortWithErr(c, errs.ErrNotFound)
 	})
 
 	//	Custom 405 handling
 	r.NoMethod(func(c *gin.Context) {
-		httplib.AbortWithErr(c, errs.MethodNotAllowed)
+		httplib.AbortWithErr(c, errs.ErrMethodNotAllowed)
 	})
 
 	r.registerRoutes()
@@ -71,7 +72,7 @@ func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
 	authorized := auth.Group("/", r.authMW.RequireAuth())
 	authorized.GET("user", r.authH.User)
 
-	//	Semi-authorized routes (need only refresh token)
+	//	Semi-authorized routes (need refresh token)
 	auth.POST("logout", r.authH.Logout)
 	auth.POST("refresh", r.authH.Refresh)
 }

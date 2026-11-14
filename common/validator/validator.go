@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/iancoleman/strcase"
 	"reflect"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 
 	gpv "github.com/go-playground/validator/v10"
 )
 
 // MessageFunc carries failed field's info as well as its formatted field name [fname].
-// fname is equal to field.StructField() converted from PascalCase to sentence case.
-// e.g. from "SomeFieldName" to "Some field name".
+// Fname is equal to f.StructField() converted from PascalCase to Sentence case.
+// E.g. from "SomeFieldName" to "Some field name".
 type MessageFunc func(f gpv.FieldError, fname string) string
 
 type Validate struct {
@@ -72,7 +73,7 @@ func (v *Validate) Struct(s any) error {
 //
 // Will result:
 //
-// "password_confirmation": "PassConfirm is required."
+// "password_confirmation": "PassConfirm is required.".
 func (v *Validate) RegisterTagName(tagName string) {
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		if tagName != defaultTagName {
@@ -118,7 +119,7 @@ func (v *Validate) RegisterCustomMessages(messages map[string]MessageFunc) {
 }
 
 // getMessage returns message associated with tag,
-// if it does not find matching tag it will fallback to default message
+// if it does not find matching tag, it will fallback to default message.
 func (v *Validate) getMessage(f gpv.FieldError) string {
 	for tag, msg := range v.messageMap {
 		if tag == f.Tag() {

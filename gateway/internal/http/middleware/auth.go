@@ -1,14 +1,16 @@
 package middleware
 
 import (
+	"strings"
+
+	"github.com/gin-gonic/gin"
+
 	ctxlib "github.com/Nurlan270/task-tracker-go/gateway/internal/context"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/entity"
 	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
 	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
-	"github.com/gin-gonic/gin"
-	"strings"
 )
 
 type AuthMiddleware struct {
@@ -25,7 +27,7 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 		token, err := c.Cookie(httplib.AccessCookieName)
 		if err != nil || strings.TrimSpace(token) == "" {
 			//	Token does not exist or empty
-			httplib.AbortWithErr(c, errs.Unauthorized)
+			httplib.AbortWithErr(c, errs.ErrUnauthorized)
 			return
 		}
 

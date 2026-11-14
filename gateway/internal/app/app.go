@@ -3,15 +3,17 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/Nurlan270/task-tracker-go/common/closer"
-	"github.com/Nurlan270/task-tracker-go/common/config"
-	"github.com/Nurlan270/task-tracker-go/common/logger"
-	appcfg "github.com/Nurlan270/task-tracker-go/gateway/internal/config"
-	"go.uber.org/zap"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/Nurlan270/task-tracker-go/common/closer"
+	"github.com/Nurlan270/task-tracker-go/common/config"
+	"github.com/Nurlan270/task-tracker-go/common/logger"
+	"go.uber.org/zap"
+
+	appcfg "github.com/Nurlan270/task-tracker-go/gateway/internal/config"
 )
 
 type App struct {

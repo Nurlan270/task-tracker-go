@@ -1,0 +1,14 @@
+app:
+  env: "test"
+  name: "user-service"
+
+database:
+  name: "user"
+  user: "user_owner"
+  password: "qwerty123"
+
+jwt:
+  issuer: "test-issuer"
+  secret: "some-secret-123"
+  access_ttl: 15m
+  refresh_ttl: 168h # 7 days

@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"time"
+
 	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"time"
 )
 
 func Logger() gin.HandlerFunc {

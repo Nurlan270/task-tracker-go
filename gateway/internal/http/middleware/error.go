@@ -2,15 +2,17 @@ package middleware
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/Nurlan270/task-tracker-go/common/logger"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
-	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net/http"
+
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
+	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 )
 
 func ErrorHandler() gin.HandlerFunc {
@@ -22,6 +24,7 @@ func ErrorHandler() gin.HandlerFunc {
 			logger.Get().
 				Error("Request context has error. Nothing will be written to response",
 					zap.Error(ctx.Err()))
+
 			return
 		}
 
@@ -46,17 +49,20 @@ func handleHTTP(c *gin.Context, err error) {
 	log := logger.Get().SetOp("Handle HTTP")
 
 	switch {
-	case errors.Is(err, errs.Unauthorized):
+	case errors.Is(err, errs.ErrUnauthorized):
 		c.AbortWithStatusJSON(http.StatusUnauthorized, response.New(message.ErrUnauthorized))
-	case errors.Is(err, errs.Forbidden):
+	case errors.Is(err, errs.ErrForbidden):
 		c.AbortWithStatusJSON(http.StatusForbidden, response.New(message.ErrForbidden))
-	case errors.Is(err, errs.BadRequest):
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.New(message.ErrBadRequest).SetValidationErrors(err))
-	case errors.Is(err, errs.NotFound):
+	case errors.Is(err, errs.ErrBadRequest):
+		c.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			response.New(message.ErrBadRequest).SetValidationErrors(err),
+		)
+	case errors.Is(err, errs.ErrNotFound):
 		c.AbortWithStatusJSON(http.StatusNotFound, response.New(message.ErrNotFound))
-	case errors.Is(err, errs.MethodNotAllowed):
+	case errors.Is(err, errs.ErrMethodNotAllowed):
 		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, response.New(message.ErrMethodNotAllowed))
-	case errors.Is(err, errs.InternalServer):
+	case errors.Is(err, errs.ErrInternalServer):
 		log.Error("Internal server error", zap.Error(err))
 
 		c.AbortWithStatusJSON(http.StatusInternalServerError, response.New(message.ErrInternal))
@@ -72,7 +78,10 @@ func handleGRPC(c *gin.Context, st *status.Status) {
 
 	switch st.Code() {
 	case codes.InvalidArgument:
-		c.AbortWithStatusJSON(http.StatusBadRequest, response.New(message.ErrBadRequest).SetGRPCErrors(st.Err()))
+		c.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			response.New(message.ErrBadRequest).SetGRPCErrors(st.Err()),
+		)
 	case codes.AlreadyExists:
 		c.AbortWithStatusJSON(http.StatusConflict, response.New(st.Message()))
 	case codes.Unauthenticated:

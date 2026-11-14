@@ -3,10 +3,10 @@ package errors
 import "errors"
 
 var (
-	InternalServer   = errors.New("http: internal server error")
-	BadRequest       = errors.New("http: bad request")
-	NotFound         = errors.New("http: resource not found")
-	MethodNotAllowed = errors.New("http: method not allowed")
-	Unauthorized     = errors.New("http: unauthorized")
-	Forbidden        = errors.New("http: forbidden")
+	ErrInternalServer   = errors.New("http: internal server error")
+	ErrBadRequest       = errors.New("http: bad request")
+	ErrNotFound         = errors.New("http: resource not found")
+	ErrMethodNotAllowed = errors.New("http: method not allowed")
+	ErrUnauthorized     = errors.New("http: unauthorized")
+	ErrForbidden        = errors.New("http: forbidden")
 )

@@ -2,16 +2,18 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
+	"strings"
+
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	"github.com/gin-gonic/gin"
+
 	ctxlib "github.com/Nurlan270/task-tracker-go/gateway/internal/context"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/entity"
 	errs "github.com/Nurlan270/task-tracker-go/gateway/internal/errors"
 	httplib "github.com/Nurlan270/task-tracker-go/gateway/internal/http"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"strings"
 )
 
 type AuthHandler struct {
@@ -26,12 +28,13 @@ func NewAuthHandler(validator *validator.Validate, authSvc *service.AuthService)
 	}
 }
 
+//nolint:dupl
 func (h *AuthHandler) Register(c *gin.Context) {
 	var body request.Register
 
 	//	Bind request body
 	if err := c.ShouldBindJSON(&body); err != nil {
-		httplib.AbortWithErr(c, errs.BadRequest)
+		httplib.AbortWithErr(c, errs.ErrBadRequest)
 		return
 	}
 
@@ -40,11 +43,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		var validationErr *validator.ErrValidation
 
 		if errors.As(err, &validationErr) {
-			httplib.AbortWithErr(c, errors.Join(errs.BadRequest, validationErr))
+			httplib.AbortWithErr(c, errors.Join(errs.ErrBadRequest, validationErr))
 			return
 		}
 
-		httplib.AbortWithErr(c, errors.Join(errs.InternalServer, err))
+		httplib.AbortWithErr(c, errors.Join(errs.ErrInternalServer, err))
+
 		return
 	}
 
@@ -64,12 +68,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
+//nolint:dupl
 func (h *AuthHandler) Login(c *gin.Context) {
 	var body request.Login
 
 	//	Bind request body
 	if err := c.ShouldBindJSON(&body); err != nil {
-		httplib.AbortWithErr(c, errs.BadRequest)
+		httplib.AbortWithErr(c, errs.ErrBadRequest)
 		return
 	}
 
@@ -78,11 +83,12 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		var validationErr *validator.ErrValidation
 
 		if errors.As(err, &validationErr) {
-			httplib.AbortWithErr(c, errors.Join(errs.BadRequest, validationErr))
+			httplib.AbortWithErr(c, errors.Join(errs.ErrBadRequest, validationErr))
 			return
 		}
 
-		httplib.AbortWithErr(c, errors.Join(errs.InternalServer, err))
+		httplib.AbortWithErr(c, errors.Join(errs.ErrInternalServer, err))
+
 		return
 	}
 
@@ -107,7 +113,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	token, err := c.Cookie(httplib.RefreshCookieName)
 	if err != nil || strings.TrimSpace(token) == "" {
 		//	Token does not exist or empty
-		httplib.AbortWithErr(c, errs.Unauthorized)
+		httplib.AbortWithErr(c, errs.ErrUnauthorized)
 		return
 	}
 
@@ -133,7 +139,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	token, err := c.Cookie(httplib.RefreshCookieName)
 	if err != nil || strings.TrimSpace(token) == "" {
 		//	Token does not exist or empty
-		httplib.AbortWithErr(c, errs.Unauthorized)
+		httplib.AbortWithErr(c, errs.ErrUnauthorized)
 		return
 	}
 

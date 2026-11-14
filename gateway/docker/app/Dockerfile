@@ -11,14 +11,14 @@ COPY go.work ./
 COPY common/go.mod common/go.sum ./common/
 COPY protos/go.mod protos/go.sum ./protos/
 COPY gateway/go.mod gateway/go.sum ./gateway/
-COPY auth-service/go.mod auth-service/go.sum ./auth-service/
+COPY user-service/go.mod user-service/go.sum ./user-service/
 
 RUN cd gateway && go mod download -x
 
 COPY common ./common
 COPY protos ./protos
 COPY gateway ./gateway
-COPY auth-service ./auth-service
+COPY user-service ./user-service
 
 FROM base AS dev
 

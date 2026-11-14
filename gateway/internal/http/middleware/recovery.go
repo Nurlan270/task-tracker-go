@@ -1,12 +1,14 @@
 package middleware
 
 import (
+	"net/http"
+
 	"github.com/Nurlan270/task-tracker-go/common/logger"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
-	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"net/http"
+
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/message"
 )
 
 func Recover(c *gin.Context, recovered any) {

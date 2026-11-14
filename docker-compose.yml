@@ -8,7 +8,7 @@ services:
     volumes:
       - ./gateway:/app/gateway
       - ./common:/app/common
-      - ./auth-service:/app/auth-service
+      - ./user-service:/app/user-service
       - ./protos:/app/protos
       - ./go.work:/app/go.work
     expose:
@@ -18,18 +18,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      auth-service:
+      user-service:
         condition: service_started
     restart: unless-stopped
 
-  auth-service:
-    container_name: auth-service
+  user-service:
+    container_name: user-service
     build:
       target: dev
       context: .
-      dockerfile: auth-service/docker/app/Dockerfile
+      dockerfile: user-service/docker/app/Dockerfile
     volumes:
-      - ./auth-service:/app/auth-service
+      - ./user-service:/app/user-service
       - ./common:/app/common
       - ./gateway:/app/gateway
       - ./protos:/app/protos

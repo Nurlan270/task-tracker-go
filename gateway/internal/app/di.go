@@ -2,19 +2,22 @@ package app
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/Nurlan270/task-tracker-go/common/closer"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/config"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/handlers"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/router"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
-	authV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/auth/v1"
-	"github.com/gin-gonic/gin"
+
+	userV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/user/v1"
 	gpv "github.com/go-playground/validator/v10"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"net/http"
 )
 
 type diContainer struct {
@@ -37,8 +40,11 @@ type diContainer struct {
 	//	Validator
 	validator *validator.Validate
 
-	//	gRPC
-	authClient authV1.AuthServiceClient
+	//	gRPC Core
+	userGRPCConn *grpc.ClientConn
+
+	//	gRPC Clients
+	authGRPCClient userV1.AuthServiceClient
 
 	//	Services
 	authSvc *service.AuthService
@@ -72,24 +78,32 @@ func (c *diContainer) Gin() *gin.Engine {
 	return c.gin
 }
 
-func (c *diContainer) AuthClient() authV1.AuthServiceClient {
-	if c.authClient == nil {
+func (c *diContainer) UserGRPCConn() *grpc.ClientConn {
+	if c.userGRPCConn == nil {
 		conn, err := grpc.NewClient(
-			c.cfg.AuthService.GetAddr(),
+			c.cfg.UserService.GetAddr(),
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		)
 		if err != nil {
-			panic(fmt.Sprintf("grpc: failed to connect to auth service: %s", err))
+			panic(fmt.Sprintf("failed to connect to user service: %s", err))
 		}
 
-		closer.Add("gRPC / Auth Service Client", func() error {
+		closer.Add("gRPC / User Service Client", func() error {
 			return conn.Close()
 		})
 
-		c.authClient = authV1.NewAuthServiceClient(conn)
+		c.userGRPCConn = conn
 	}
 
-	return c.authClient
+	return c.userGRPCConn
+}
+
+func (c *diContainer) AuthGRPCClient() userV1.AuthServiceClient {
+	if c.authGRPCClient == nil {
+		c.authGRPCClient = userV1.NewAuthServiceClient(c.UserGRPCConn())
+	}
+
+	return c.authGRPCClient
 }
 
 func (c *diContainer) Validator() *validator.Validate {
@@ -102,7 +116,7 @@ func (c *diContainer) Validator() *validator.Validate {
 
 func (c *diContainer) AuthService() *service.AuthService {
 	if c.authSvc == nil {
-		c.authSvc = service.NewAuthService(c.AuthClient())
+		c.authSvc = service.NewAuthService(c.AuthGRPCClient())
 	}
 
 	return c.authSvc

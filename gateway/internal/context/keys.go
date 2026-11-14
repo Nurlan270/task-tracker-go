@@ -5,6 +5,5 @@ type contextKey struct {
 }
 
 var (
-	UserCtxKey         = &contextKey{name: "user"}
-	RefreshTokenCtxKey = &contextKey{name: "refresh_token"}
+	UserCtxKey = &contextKey{name: "user"}
 )

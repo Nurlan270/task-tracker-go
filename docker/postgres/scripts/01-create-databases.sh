@@ -43,6 +43,6 @@ SQL
 }
 
 create_database \
-    "$AUTH_DB_NAME" \
-    "$AUTH_DB_USER" \
-    "$AUTH_DB_PASSWORD"
+    "$USER_DB_NAME" \
+    "$USER_DB_USER" \
+    "$USER_DB_PASSWORD"

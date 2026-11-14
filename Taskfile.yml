@@ -14,9 +14,9 @@ vars:
   MOCKERY_VERSION: "v3.9.0"
 
 includes:
-  service:auth:
-    dir: ./auth-service
-    taskfile: ./auth-service/Taskfile.yml
+  service:user:
+    dir: ./user-service
+    taskfile: ./user-service/Taskfile.yml
 
 tasks:
   bin:init:
@@ -66,7 +66,8 @@ tasks:
     silent: true
     cmds:
       - cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
-      - cd auth-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - cd gateway && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - cd user-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
 
   mock:install:
     desc: Install Mockery binary
