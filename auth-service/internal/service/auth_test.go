@@ -116,42 +116,55 @@ func (s *AuthServiceTestSuite) TestRegister() {
 	s.Run("it should validate request body", func() {
 		//	Test cases
 		var tests = map[string]struct {
-			Name, Email, Password string
+			Name, Email, Password, PasswordConfirmation string
 		}{
 			"invalid email format": {
-				Email:    "not-a-valid-email",
-				Name:     "john",
-				Password: "qwerty123",
+				Email:                "not-a-valid-email",
+				Name:                 "john",
+				Password:             "qwerty123",
+				PasswordConfirmation: "qwerty123",
 			},
 			"empty email": {
-				Email:    "",
-				Name:     "john",
-				Password: "qwerty123",
+				Email:                "",
+				Name:                 "john",
+				Password:             "qwerty123",
+				PasswordConfirmation: "qwerty123",
 			},
 			"empty password": {
-				Email:    "john@mail.com",
-				Name:     "john",
-				Password: "",
+				Email:                "john@mail.com",
+				Name:                 "john",
+				Password:             "",
+				PasswordConfirmation: "",
 			},
 			"empty name": {
-				Email:    "john@mail.com",
-				Name:     "",
-				Password: "qwerty123",
+				Email:                "john@mail.com",
+				Name:                 "",
+				Password:             "qwerty123",
+				PasswordConfirmation: "qwerty123",
 			},
 			"long name (longer than 50 chars)": {
-				Email:    "john@mail.com",
-				Name:     "AlexanderConstantinovichMontgomeryWellingtonTheThird", // 54 chars
-				Password: "qwerty123",
+				Email:                "john@mail.com",
+				Name:                 "AlexanderConstantinovichMontgomeryWellingtonTheThird", // 54 chars
+				Password:             "qwerty123",
+				PasswordConfirmation: "qwerty123",
 			},
 			"invalid name format": {
-				Email:    "john@mail.com",
-				Name:     "some:illegal&name;",
-				Password: "qwerty123",
+				Email:                "john@mail.com",
+				Name:                 "some:illegal&name;",
+				Password:             "qwerty123",
+				PasswordConfirmation: "qwerty123",
 			},
 			"too short password (less than 8 chars)": {
-				Email:    "john@mail.com",
-				Name:     "john",
-				Password: "qwerty",
+				Email:                "john@mail.com",
+				Name:                 "john",
+				Password:             "qwerty",
+				PasswordConfirmation: "qwerty",
+			},
+			"not identical password confirmation": {
+				Email:                "john@mail.com",
+				Name:                 "john",
+				Password:             "qwerty123",
+				PasswordConfirmation: "not-identical-password",
 			},
 		}
 
@@ -162,9 +175,10 @@ func (s *AuthServiceTestSuite) TestRegister() {
 				defer cancel()
 
 				resp, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-					Name:     tt.Name,
-					Email:    tt.Email,
-					Password: tt.Password,
+					Name:                 tt.Name,
+					Email:                tt.Email,
+					Password:             tt.Password,
+					PasswordConfirmation: tt.PasswordConfirmation,
 				})
 
 				s.Require().Error(err)
@@ -192,9 +206,10 @@ func (s *AuthServiceTestSuite) TestRegister() {
 
 		//	Try to register
 		resp, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+			Name:                 user.Name,
+			Email:                user.Email,
+			Password:             user.Password,
+			PasswordConfirmation: user.Password,
 		})
 
 		s.Require().Error(err)
@@ -325,9 +340,10 @@ func (s *AuthServiceTestSuite) TestRefresh() {
 
 		//	Register so there's actually a valid refresh token in DB
 		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-			Name:     "John",
-			Email:    "john@mail.com",
-			Password: "qwerty123",
+			Name:                 "John",
+			Email:                "john@mail.com",
+			Password:             "qwerty123",
+			PasswordConfirmation: "qwerty123",
 		})
 
 		s.Require().NoError(err)
@@ -368,9 +384,10 @@ func (s *AuthServiceTestSuite) TestRefresh() {
 
 		//	Register so there's actually a valid refresh token in DB
 		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-			Name:     "John",
-			Email:    "john@mail.com",
-			Password: "qwerty123",
+			Name:                 "John",
+			Email:                "john@mail.com",
+			Password:             "qwerty123",
+			PasswordConfirmation: "qwerty123",
 		})
 
 		s.Require().NoError(err)
@@ -394,7 +411,7 @@ func (s *AuthServiceTestSuite) TestRefresh() {
 	})
 }
 
-func (s *AuthServiceTestSuite) TestUser() {
+func (s *AuthServiceTestSuite) TestGetUser() {
 	s.Run("it should return user with valid access token", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
@@ -408,21 +425,22 @@ func (s *AuthServiceTestSuite) TestUser() {
 
 		//	Register new user
 		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+			Name:                 user.Name,
+			Email:                user.Email,
+			Password:             user.Password,
+			PasswordConfirmation: user.Password,
 		})
 
 		s.Require().NoError(err)
 		s.Require().NotNil(tokenPair)
 
-		expected := &authV1.UserResponse{
+		expected := &authV1.GetUserResponse{
 			Name:  user.Name,
 			Email: user.Email,
 		}
 
 		//	Get user
-		actual, err := s.authSvc.User(ctx, &authV1.UserRequest{
+		actual, err := s.authSvc.GetUser(ctx, &authV1.GetUserRequest{
 			AccessToken: tokenPair.AccessToken,
 		})
 
@@ -433,7 +451,7 @@ func (s *AuthServiceTestSuite) TestUser() {
 			expected,
 			actual,
 			protocmp.Transform(),
-			protocmp.IgnoreFields(&authV1.UserResponse{}, "id"),
+			protocmp.IgnoreFields(&authV1.GetUserResponse{}, "id"),
 		); diff != "" {
 			s.T().Errorf("authSvc.User() mismatch (-want +got):\n%s", diff)
 		}
@@ -452,16 +470,17 @@ func (s *AuthServiceTestSuite) TestUser() {
 
 		//	Register new user
 		tokenPair, err := s.authSvc.Register(ctx, &authV1.RegisterRequest{
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+			Name:                 user.Name,
+			Email:                user.Email,
+			Password:             user.Password,
+			PasswordConfirmation: user.Password,
 		})
 
 		s.Require().NoError(err)
 		s.Require().NotNil(tokenPair)
 
 		//	Get user
-		resp, err := s.authSvc.User(ctx, &authV1.UserRequest{
+		resp, err := s.authSvc.GetUser(ctx, &authV1.GetUserRequest{
 			AccessToken: "invalid-access-token",
 		})
 

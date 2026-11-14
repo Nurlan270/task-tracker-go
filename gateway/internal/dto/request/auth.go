@@ -1,14 +1,15 @@
 package request
 
 type Register struct {
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Name                 string `json:"name" validate:"required"`
+	Email                string `json:"email" validate:"required"`
+	Password             string `json:"password" validate:"required"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password"`
 }
 
 type Login struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type Logout struct {

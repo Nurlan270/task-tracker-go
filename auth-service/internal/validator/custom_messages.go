@@ -9,7 +9,7 @@ import (
 )
 
 var Messages = map[string]validator.MessageFunc{
-	"name": func(f gpv.FieldError) string {
-		return fmt.Sprintf("%s has an invalid format", f.StructField())
+	"name": func(f gpv.FieldError, fname string) string {
+		return fmt.Sprintf("%s has an invalid format", fname)
 	},
 }

@@ -11,7 +11,7 @@ func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		c.Next()
+		c.Next() //	Process the request first
 
 		logger.Get().WithOptions(zap.WithCaller(false)).
 			Info("Incoming request",
@@ -21,7 +21,6 @@ func Logger() gin.HandlerFunc {
 				zap.String("query", c.Request.URL.RawQuery),
 				zap.String("ip", c.ClientIP()),
 				zap.String("user_agent", c.Request.UserAgent()),
-				zap.String("errors", c.Errors.ByType(gin.ErrorTypePrivate).String()),
 				zap.Duration("duration", time.Since(start).Truncate(time.Millisecond)),
 			)
 	}

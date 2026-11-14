@@ -19,9 +19,10 @@ func NewAuthService(client authV1.AuthServiceClient) *AuthService {
 
 func (s *AuthService) Register(ctx context.Context, req *request.Register) (response.Register, error) {
 	resp, err := s.client.Register(ctx, &authV1.RegisterRequest{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: req.Password,
+		Name:                 req.Name,
+		Email:                req.Email,
+		Password:             req.Password,
+		PasswordConfirmation: req.PasswordConfirmation,
 	})
 
 	if err != nil {
@@ -83,7 +84,7 @@ func (s *AuthService) Refresh(ctx context.Context, req *request.Refresh) (respon
 }
 
 func (s *AuthService) GetUser(ctx context.Context, req *request.GetUser) (response.GetUser, error) {
-	resp, err := s.client.User(ctx, &authV1.UserRequest{
+	resp, err := s.client.GetUser(ctx, &authV1.GetUserRequest{
 		AccessToken: req.AccessToken,
 	})
 

@@ -72,9 +72,10 @@ func (s *AuthService) Register(
 	log := logger.Get().SetOp("Register")
 
 	body := request.RegisterUser{
-		Name:     req.GetName(),
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
+		Name:                 req.GetName(),
+		Email:                req.GetEmail(),
+		Password:             req.GetPassword(),
+		PasswordConfirmation: req.GetPasswordConfirmation(),
 	}
 
 	//	Validate request body
@@ -380,7 +381,7 @@ func (s *AuthService) Refresh(
 	}, nil
 }
 
-func (s *AuthService) User(ctx context.Context, req *authV1.UserRequest) (*authV1.UserResponse, error) {
+func (s *AuthService) GetUser(ctx context.Context, req *authV1.GetUserRequest) (*authV1.GetUserResponse, error) {
 	log := logger.Get().SetOp("User")
 
 	body := request.GetUser{
@@ -412,7 +413,7 @@ func (s *AuthService) User(ctx context.Context, req *authV1.UserRequest) (*authV
 		return nil, status.Error(codes.Unauthenticated, message.ErrTokenInvalid)
 	}
 
-	return &authV1.UserResponse{
+	return &authV1.GetUserResponse{
 		Id:    uint64(claims["user_id"].(float64)),
 		Name:  claims["name"].(string),
 		Email: claims["email"].(string),

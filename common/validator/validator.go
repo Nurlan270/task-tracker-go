@@ -4,18 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/iancoleman/strcase"
 	"reflect"
 	"strings"
 
 	gpv "github.com/go-playground/validator/v10"
 )
 
-type MessageFunc func(f gpv.FieldError) string
+// MessageFunc carries failed field's info as well as its formatted field name [fname].
+// fname is equal to field.StructField() converted from PascalCase to sentence case.
+// e.g. from "SomeFieldName" to "Some field name".
+type MessageFunc func(f gpv.FieldError, fname string) string
 
 type Validate struct {
 	*gpv.Validate
 	messageMap map[string]MessageFunc
 }
+
+const defaultTagName string = "json"
 
 func New(opts ...gpv.Option) *Validate {
 	v := gpv.New(opts...)
@@ -25,21 +31,10 @@ func New(opts ...gpv.Option) *Validate {
 		messageMap: messages,
 	}
 
-	validator.registerTagName()
+	//	Register default tag name func
+	validator.RegisterTagName(defaultTagName)
 
 	return validator
-}
-
-type ErrValidation struct {
-	errors map[string]string
-}
-
-func (e *ErrValidation) Error() string {
-	return fmt.Sprintf("validation errors: %s", e.errors)
-}
-
-func (e *ErrValidation) GetErrors() map[string]string {
-	return e.errors
 }
 
 func (v *Validate) Struct(s any) error {
@@ -64,9 +59,27 @@ func (v *Validate) Struct(s any) error {
 	}
 }
 
-func (v *Validate) registerTagName() {
+// RegisterTagName registers tag name function to get tag value when calling FieldError.Field().
+// By default it will use "json" as tag name
+//
+// For example:
+//
+// RegisterTagName("vbody")
+//
+//	 type Request struct {
+//		 PassConfirm string `vbody:"password_confirmation" validate:"required"`
+//	 }
+//
+// Will result:
+//
+// "password_confirmation": "PassConfirm is required."
+func (v *Validate) RegisterTagName(tagName string) {
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		return strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if tagName != defaultTagName {
+			return fld.Tag.Get(tagName)
+		}
+
+		return strings.SplitN(fld.Tag.Get(tagName), ",", 2)[0]
 	})
 }
 
@@ -104,12 +117,21 @@ func (v *Validate) RegisterCustomMessages(messages map[string]MessageFunc) {
 	}
 }
 
+// getMessage returns message associated with tag,
+// if it does not find matching tag it will fallback to default message
 func (v *Validate) getMessage(f gpv.FieldError) string {
 	for tag, msg := range v.messageMap {
 		if tag == f.Tag() {
-			return msg(f)
+			return msg(f, formatFieldName(f.StructField()))
 		}
 	}
 
-	return v.messageMap[messageDefault](f)
+	return v.messageMap[messageDefault](f, formatFieldName(f.StructField()))
+}
+
+// formatFieldName formats field's name
+// from "SomeFieldName" to "Some field name".
+func formatFieldName(name string) string {
+	s := strcase.ToDelimited(name, ' ')
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }
