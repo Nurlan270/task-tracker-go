@@ -32,7 +32,7 @@ CMD ["air", "-c", "./docker/app/.air.toml"]
 
 FROM base AS builder
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/app ./cmd/app
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/user-service ./cmd/user-service
 
 FROM alpine:3.22 AS prod
 
