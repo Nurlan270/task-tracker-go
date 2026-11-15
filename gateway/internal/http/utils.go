@@ -13,7 +13,7 @@ const (
 	RefreshCookieName = "_refresh_token"
 
 	accessCookiePath  = "/"
-	refreshCookiePath = "/api/v1/user"
+	refreshCookiePath = "/api/v1/auth"
 )
 
 // SetTokenCookies sets token cookies with specified values.
