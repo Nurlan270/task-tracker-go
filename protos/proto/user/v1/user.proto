@@ -95,9 +95,6 @@ message GetUserRequest {
 }
 
 message GetUserResponse {
-  //  user's id
-  uint64 id = 1;
-
   //  user's name
   string name = 2;
 

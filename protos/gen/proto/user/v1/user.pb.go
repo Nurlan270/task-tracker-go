@@ -475,8 +475,6 @@ func (x *GetUserRequest) GetAccessToken() string {
 
 type GetUserResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// user's id
-	Id uint64 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	// user's name
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// user's email address
@@ -513,13 +511,6 @@ func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetUserResponse.ProtoReflect.Descriptor instead.
 func (*GetUserResponse) Descriptor() ([]byte, []int) {
 	return file_user_v1_user_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetUserResponse) GetId() uint64 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
 }
 
 func (x *GetUserResponse) GetName() string {
@@ -569,9 +560,8 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\texpiresIn\"3\n" +
 	"\x0eGetUserRequest\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\"K\n" +
-	"\x0fGetUserResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\";\n" +
+	"\x0fGetUserResponse\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email2\xbc\x02\n" +
 	"\vAuthService\x12?\n" +

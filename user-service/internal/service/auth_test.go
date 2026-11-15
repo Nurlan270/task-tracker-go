@@ -451,7 +451,6 @@ func (s *AuthServiceTestSuite) TestGetUser() {
 			expected,
 			actual,
 			protocmp.Transform(),
-			protocmp.IgnoreFields(&userV1.GetUserResponse{}, "id"),
 		); diff != "" {
 			s.T().Errorf("authSvc.User() mismatch (-want +got):\n%s", diff)
 		}

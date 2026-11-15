@@ -417,7 +417,6 @@ func (s *AuthService) GetUser(
 	}
 
 	return &userV1.GetUserResponse{
-		Id:    uint64(claims["user_id"].(float64)),
 		Name:  claims["name"].(string),
 		Email: claims["email"].(string),
 	}, nil

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fc"><title>Task Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header" id="site-header">
+      <a class="brand" href="/" aria-label="Task Tracker home"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19.5 6.8"/></svg></span><span>Task<span class="brand-light">Tracker</span></span></a>
+      <nav class="header-actions" aria-label="Main navigation"><a class="button button-ghost button-small" href="/login/">Login</a><a class="button button-primary button-small" href="/register/">Register</a></nav>
+    </header>
+    <main class="home-main">
+      <section class="welcome-card">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> A little more organized, every day</div>
+        <div class="hero-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="8" width="30" height="33" rx="7"/><path d="M17 19h14M17 26h14M17 33h8M15 8V5m18 3V5"/><path d="m29 31 3 3 6-7"/></svg></div>
+        <h1>Make room for<br><span>what matters.</span></h1>
+        <p class="welcome-copy">Keep your tasks in one place, stay focused on your priorities, and make progress one step at a time.</p>
+        <div class="hero-actions"><a class="button button-primary" href="/register/">Get started <span aria-hidden="true">→</span></a><a class="button button-secondary" href="/login/">I already have an account</a></div>
+        <p class="micro-copy">Simple planning. Clear progress. Less mental clutter.</p>
+      </section>
+    </main>
+    <footer class="site-footer"><span>© <span id="year"></span> Task Tracker</span><span>Проект <a href="https://github.com/Nurlan270/task-tracker-go" target="_blank" rel="noopener noreferrer">«Планировщик задач»</a></span></footer>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script><script src="/assets/js/config.js"></script><script src="/assets/js/api.js"></script><script src="/assets/js/common.js"></script>
+</body></html>

@@ -74,6 +74,19 @@ services:
     depends_on:
       gateway:
         condition: service_started
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    expose:
+      - 80
+    networks:
+      - task-tracker-network
     restart: unless-stopped
 
 networks:

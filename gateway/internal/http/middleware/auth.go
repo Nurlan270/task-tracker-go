@@ -42,7 +42,6 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 
 		//	Set user into context
 		c.Set(ctxlib.UserCtxKey, &entity.User{
-			ID:    resp.ID,
 			Name:  resp.Name,
 			Email: resp.Email,
 		})
