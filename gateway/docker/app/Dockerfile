@@ -6,19 +6,25 @@ RUN apk add --no-cache ca-certificates git
 
 ENV GOWORK=/app/go.work
 
+# Workspace
 COPY go.work ./
 
-COPY common/go.mod common/go.sum ./common/
-COPY protos/go.mod protos/go.sum ./protos/
-COPY gateway/go.mod gateway/go.sum ./gateway/
-COPY user-service/go.mod user-service/go.sum ./user-service/
+# All module metadata required by go.work
+COPY common/go.mod common/
+COPY protos/go.mod protos/
+COPY gateway/go.mod gateway/
+COPY task-service/go.mod task-service/
+COPY user-service/go.mod user-service/
 
+# Download dependencies
 RUN cd gateway && go mod download -x
 
-COPY common ./common
-COPY protos ./protos
-COPY gateway ./gateway
-COPY user-service ./user-service
+# Actual dependencies
+COPY common/ common/
+COPY protos/ protos/
+
+# Current service
+COPY gateway/ gateway/
 
 FROM base AS dev
 

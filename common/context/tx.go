@@ -18,7 +18,7 @@ func TXFromCtx(ctx context.Context) (*gorm.DB, bool) {
 }
 
 // GetDB returns TX within provided context,
-// if it does not find any it will return provided db argument.
+// if it does not find any, it will return provided db argument.
 func GetDB(ctx context.Context, db *gorm.DB) *gorm.DB {
 	if tx, ok := TXFromCtx(ctx); ok && tx != nil {
 		return tx

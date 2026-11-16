@@ -149,6 +149,10 @@ func (a *App) Run() {
 	a.startCleanupWorker(ctx)
 	a.startGRPCServer(ctx)
 
+	//	10 Seconds to close all opened resources
+	closeCtx, closeCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer closeCancel()
+
 	//	Close all opened resources
-	closer.CloseAll(ctx)
+	closer.CloseAll(closeCtx)
 }
