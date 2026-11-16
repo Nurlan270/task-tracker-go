@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package task.v1;
+
+option go_package = "github.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1;task_v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service TaskService {
+  rpc Create(CreateRequest) returns (google.protobuf.Empty);
+  rpc Update(UpdateRequest) returns (google.protobuf.Empty);
+  rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc MarkAsCompleted(MarkAsCompletedRequest) returns (google.protobuf.Empty);
+}
+
+//  Create new task
+message CreateRequest {
+  //  Task owner's id
+  uint64 user_id = 1;
+
+  //  Task's title
+  string title = 2;
+
+  //  Task's description
+  string description = 3;
+}
+
+//  Update existing task
+message UpdateRequest {
+  //  Task's id
+  uint64 task_id = 1;
+
+  //  Task owner's id
+  uint64 user_id = 2;
+
+  //  New task title
+  string title = 3;
+
+  //  New task description
+  string description = 4;
+}
+
+//  Delete task.
+//  Deletion could be either force or soft based on is_force argument
+message DeleteRequest {
+  //  Task's id
+  uint64 task_id = 1;
+
+  //  Task owner's id
+  uint64 user_id = 2;
+
+  //  Flag to determine whether this request is for force or soft deletion
+  bool is_force = 3;
+}
+
+//  Get list of all user's tasks
+message ListRequest {
+  //  Task's owner id
+  uint64 user_id = 1;
+}
+
+//  List of user's tasks
+message ListResponse {
+  //  List of tasks
+  repeated Task task = 1;
+}
+
+//  Task
+message Task {
+  string title = 1;
+  string description = 2;
+  google.protobuf.Timestamp completed_at = 3;
+}
+
+//  Mark task as completed
+message MarkAsCompletedRequest {
+  //  Task's id
+  uint64 task_id = 1;
+
+  //  Task owner's id
+  uint64 user_id = 2;
+}

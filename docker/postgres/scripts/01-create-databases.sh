@@ -46,3 +46,8 @@ create_database \
     "$USER_DB_NAME" \
     "$USER_DB_USER" \
     "$USER_DB_PASSWORD"
+
+create_database \
+    "$TASK_DB_NAME" \
+    "$TASK_DB_USER" \
+    "$TASK_DB_PASSWORD"

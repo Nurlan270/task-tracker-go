@@ -18,6 +18,10 @@ includes:
     dir: ./user-service
     taskfile: ./user-service/Taskfile.yml
 
+  service:task:
+    dir: ./task-service
+    taskfile: ./task-service/Taskfile.yml
+
 tasks:
   bin:init:
     desc: Create bin folder if not already exists
@@ -68,6 +72,7 @@ tasks:
       - cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
       - cd gateway && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
       - cd user-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - cd task-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
 
   mock:install:
     desc: Install Mockery binary

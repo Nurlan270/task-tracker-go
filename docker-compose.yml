@@ -8,9 +8,7 @@ services:
     volumes:
       - ./gateway:/app/gateway
       - ./common:/app/common
-      - ./user-service:/app/user-service
       - ./protos:/app/protos
-      - ./go.work:/app/go.work
     expose:
       - 8080
     networks:
@@ -19,6 +17,8 @@ services:
       postgres:
         condition: service_healthy
       user-service:
+        condition: service_started
+      task-service:
         condition: service_started
     restart: unless-stopped
 
@@ -31,11 +31,28 @@ services:
     volumes:
       - ./user-service:/app/user-service
       - ./common:/app/common
-      - ./gateway:/app/gateway
       - ./protos:/app/protos
-      - ./go.work:/app/go.work
     expose:
       - 7070
+    networks:
+      - task-tracker-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  task-service:
+    container_name: task-service
+    build:
+      target: dev
+      context: .
+      dockerfile: task-service/docker/app/Dockerfile
+    volumes:
+      - ./task-service:/app/task-service
+      - ./common:/app/common
+      - ./protos:/app/protos
+    expose:
+      - 6060
     networks:
       - task-tracker-network
     depends_on:

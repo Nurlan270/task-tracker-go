@@ -1,0 +1,127 @@
+package app
+
+import (
+	"context"
+	"net"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/Nurlan270/task-tracker-go/common/closer"
+	"github.com/Nurlan270/task-tracker-go/common/config"
+	"github.com/Nurlan270/task-tracker-go/common/logger"
+	"go.uber.org/zap"
+
+	appcfg "github.com/Nurlan270/task-tracker-go/task-service/internal/config"
+	"github.com/Nurlan270/task-tracker-go/task-service/internal/models"
+
+	taskV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1"
+)
+
+type App struct {
+	cfg *appcfg.Config
+	di  diContainer
+}
+
+func New() *App {
+	app := &App{
+		cfg: config.MustLoad[appcfg.Config](),
+	}
+
+	app.di = newDIContainer(app.cfg)
+
+	app.initDeps()
+
+	return app
+}
+
+func (a *App) initDeps() {
+	deps := []func(){
+		a.initLogger,
+		a.migrateDB,
+		a.initGRPC,
+	}
+
+	for _, init := range deps {
+		init()
+	}
+}
+
+func (a *App) initLogger() {
+	logger.Init(a.cfg)
+
+	closer.Add("Logger", func() error {
+		return logger.Get().Close()
+	})
+}
+
+func (a *App) migrateDB() {
+	log := logger.Get().SetOp("app.migrateDB")
+
+	err := a.di.DB().AutoMigrate(
+		&models.Task{},
+	)
+	if err != nil {
+		log.Fatal("failed to migrate database", zap.Error(err))
+	}
+}
+
+func (a *App) initGRPC() {
+	grpcSrv := a.di.GRPCServer()
+
+	taskV1.RegisterTaskServiceServer(grpcSrv, a.di.TaskService())
+}
+
+func (a *App) startGRPCServer(ctx context.Context) {
+	log := logger.Get().SetOp("app.startGRPCServer")
+
+	listener, err := net.Listen("tcp", a.cfg.GRPC.GetAddr())
+	if err != nil {
+		log.Fatal("failed to listen on tcp", zap.Error(err))
+	}
+
+	grpcSrv := a.di.GRPCServer()
+
+	grpcSrvErr := make(chan error, 1)
+
+	go func() {
+		log.Info("Starting gRPC server", zap.String("address", a.cfg.GRPC.GetAddr()))
+
+		if err = grpcSrv.Serve(listener); err != nil {
+			grpcSrvErr <- err
+			return
+		}
+
+		grpcSrvErr <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		log.Info("Shutting down gRPC server")
+
+		//	Shutting down gRPC server
+		grpcSrv.GracefulStop()
+	case err = <-grpcSrvErr:
+		log.Error("failed to serve gRPC", zap.Error(err))
+	}
+}
+
+func (a *App) Run() {
+	log := logger.Get().SetOp("app.Run")
+
+	log.Info("Starting application")
+
+	//	Catch signals
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	//	Start components
+	a.startGRPCServer(ctx)
+
+	//	10 Seconds to close all opened resources
+	closeCtx, closeCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer closeCancel()
+
+	//	Close all opened resources
+	closer.CloseAll(closeCtx)
+}
