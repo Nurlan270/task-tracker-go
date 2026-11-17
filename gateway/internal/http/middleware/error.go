@@ -86,6 +86,8 @@ func handleGRPC(c *gin.Context, st *status.Status) {
 		c.AbortWithStatusJSON(http.StatusConflict, response.New(st.Message()))
 	case codes.Unauthenticated:
 		c.AbortWithStatusJSON(http.StatusUnauthorized, response.New(st.Message()))
+	case codes.NotFound:
+		c.AbortWithStatusJSON(http.StatusNotFound, response.New(st.Message()))
 	default:
 		log.Error("Internal gRPC error", zap.Error(st.Err()))
 

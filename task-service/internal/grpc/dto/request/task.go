@@ -16,7 +16,7 @@ type UpdateTask struct {
 type DeleteTask struct {
 	TaskID  uint `json:"task_id"  validate:"required"`
 	UserID  uint `json:"user_id"  validate:"required"`
-	IsForce bool `json:"is_force" validate:"required"`
+	IsForce bool `json:"is_force"`
 }
 
 type ListTask struct {

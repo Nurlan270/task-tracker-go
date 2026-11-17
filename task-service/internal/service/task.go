@@ -199,7 +199,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 		tasks[i] = &taskV1.Task{
 			Title:       task.Title,
 			Description: task.Description,
-			CompletedAt: timestamppb.New(task.CompletedAt),
+			CompletedAt: timestamppb.New(*task.CompletedAt),
 		}
 	}
 

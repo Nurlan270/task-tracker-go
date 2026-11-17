@@ -152,6 +152,44 @@ func (s *TaskServiceTestSuite) TestUpdate() {
 	})
 }
 
+func (s *TaskServiceTestSuite) TestList() {
+	s.Run("it should not show soft deleted task in tasks list", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task first
+		resp, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      1,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(resp)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Delete task
+		resp, err = s.taskSvc.Delete(ctx, &taskV1.DeleteRequest{
+			TaskId:  1,
+			UserId:  1,
+			IsForce: false,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(resp)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get tasks list
+		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(list)
+		s.Require().Equal(codes.OK, status.Code(err))
+	})
+}
+
 func (s *TaskServiceTestSuite) TestMarkAsCompleted() {
 	s.Run("it should not mark not existing task as completed", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

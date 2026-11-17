@@ -72,6 +72,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var body request.Login
 
+	//fixme: move duplicating validation code to separate function
+
 	//	Bind request body
 	if err := c.ShouldBindJSON(&body); err != nil {
 		httplib.AbortWithErr(c, errs.ErrBadRequest)

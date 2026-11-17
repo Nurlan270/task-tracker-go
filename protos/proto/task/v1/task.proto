@@ -69,8 +69,13 @@ message ListResponse {
 
 //  Task
 message Task {
+  //  Task's title
   string title = 1;
+
+  //  Task's description
   string description = 2;
+
+  //  Task's completion time
   google.protobuf.Timestamp completed_at = 3;
 }
 

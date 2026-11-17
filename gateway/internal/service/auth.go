@@ -90,6 +90,7 @@ func (s *AuthService) GetUser(ctx context.Context, req *request.GetUser) (respon
 	}
 
 	return response.GetUser{
+		ID:    uint(resp.Id),
 		Name:  resp.Name,
 		Email: resp.Email,
 	}, nil

@@ -17,13 +17,20 @@ type Router struct {
 
 	//	Handlers
 	authH *handlers.AuthHandler
+	taskH *handlers.TaskHandler
 }
 
-func New(r *gin.Engine, authMW *middleware.AuthMiddleware, authH *handlers.AuthHandler) *Router {
+func New(
+	r *gin.Engine,
+	authMW *middleware.AuthMiddleware,
+	authH *handlers.AuthHandler,
+	taskH *handlers.TaskHandler,
+) *Router {
 	return &Router{
 		Engine: r,
 		authMW: authMW,
 		authH:  authH,
+		taskH:  taskH,
 	}
 }
 
@@ -57,6 +64,7 @@ func (r *Router) registerRoutes() {
 	apiV1 := r.Group("/api/v1")
 
 	r.registerAuthV1Routes(apiV1)
+	r.registerTaskV1Routes(apiV1)
 }
 
 func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
@@ -72,7 +80,18 @@ func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
 	authorized := auth.Group("/", r.authMW.RequireAuth())
 	authorized.GET("user", r.authH.User)
 
-	//	Semi-authorized routes (need refresh token)
+	//	Semi-authorized routes (need valid refresh token)
 	auth.POST("logout", r.authH.Logout)
 	auth.POST("refresh", r.authH.Refresh)
+}
+
+func (r *Router) registerTaskV1Routes(v1 *gin.RouterGroup) {
+	//	Task v1 Routes (authorized access only)
+	task := v1.Group("/task", r.authMW.RequireAuth())
+
+	task.GET("/", r.taskH.List)
+	task.POST("/", r.taskH.Create)
+	task.PATCH("/:id", r.taskH.Update)
+	task.DELETE("/:id", r.taskH.Delete)
+	task.PATCH("/:id/completed", r.taskH.MarkTaskAsCompleted)
 }

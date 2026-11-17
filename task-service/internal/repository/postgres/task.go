@@ -41,7 +41,7 @@ func (r *TaskRepository) Update(ctx context.Context, task *models.Task) error {
 	updated, err := gorm.G[models.Task](db).
 		Where("id = ?", task.ID).
 		Where("user_id = ?", task.UserID).
-		Select("title, description").
+		Select("title", "description").
 		Updates(ctx, models.Task{Title: task.Title, Description: task.Description})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)

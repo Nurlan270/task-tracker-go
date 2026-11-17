@@ -11,3 +11,7 @@ http_server:
 user_service:
   host: user-service
   port: 7070
+
+task_service:
+  host: task-service
+  port: 6060

@@ -69,10 +69,10 @@ tasks:
     deps: [ lint:install ]
     silent: true
     cmds:
-      - cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
-      - cd gateway && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
-      - cd user-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
-      - cd task-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - echo "Common:" && cd common && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - echo "Gateway:" && cd gateway && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - echo "User service:" && cd user-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
+      - echo "Task service:" && cd task-service && {{.LINTER}} run ./... --config {{.LINTER_CONFIG}}
 
   mock:install:
     desc: Install Mockery binary
