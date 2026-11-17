@@ -29,8 +29,11 @@ type TaskService struct {
 	taskRepo repository.TaskRepository
 }
 
-func NewTaskService(taskRepo repository.TaskRepository) *TaskService {
-	return &TaskService{taskRepo: taskRepo}
+func NewTaskService(validate *validator.Validate, taskRepo repository.TaskRepository) *TaskService {
+	return &TaskService{
+		validate: validate,
+		taskRepo: taskRepo,
+	}
 }
 
 func (s *TaskService) Create(ctx context.Context, r *taskV1.CreateRequest) (*emptypb.Empty, error) {

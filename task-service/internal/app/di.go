@@ -96,7 +96,7 @@ func (c *diContainer) TaskRepo() repository.TaskRepository {
 
 func (c *diContainer) TaskService() *service.TaskService {
 	if c.taskSvc == nil {
-		c.taskSvc = service.NewTaskService(c.TaskRepo())
+		c.taskSvc = service.NewTaskService(c.Validator(), c.TaskRepo())
 	}
 
 	return c.taskSvc
