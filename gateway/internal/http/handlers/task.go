@@ -103,9 +103,9 @@ func (h *TaskHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *TaskHandler) MarkTaskAsCompleted(c *gin.Context) {
-	body := validateRequest[request.MarkTaskAsCompleted](c, h.validator,
-		func(r *request.MarkTaskAsCompleted) error {
+func (h *TaskHandler) ToggleCompletion(c *gin.Context) {
+	body := validateRequest[request.ToggleCompletion](c, h.validator,
+		func(r *request.ToggleCompletion) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
 			r.UserID = uint64(user.ID)
@@ -125,11 +125,8 @@ func (h *TaskHandler) MarkTaskAsCompleted(c *gin.Context) {
 		return
 	}
 
-	// fixme: this is not good because user can mark it back as uncompleted, we need to make this method
-	// dynamic
-
-	//	Mark task as completed
-	if err := h.taskSvc.MarkAsCompleted(c.Request.Context(), body); err != nil {
+	//	Toggle task's completion time
+	if err := h.taskSvc.ToggleCompletion(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return
 	}

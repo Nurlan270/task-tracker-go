@@ -11,5 +11,5 @@ type TaskRepository interface {
 	Update(ctx context.Context, task *models.Task) error
 	Delete(ctx context.Context, task *models.Task, isForce bool) error
 	List(ctx context.Context, userID uint) ([]models.Task, error)
-	MarkAsCompleted(ctx context.Context, task *models.Task) error
+	ToggleCompletion(ctx context.Context, task *models.Task) error
 }

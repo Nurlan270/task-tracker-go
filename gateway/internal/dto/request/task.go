@@ -23,7 +23,7 @@ type ListTask struct {
 	UserID uint64 `json:"user_id"`
 }
 
-type MarkTaskAsCompleted struct {
+type ToggleCompletion struct {
 	TaskID uint64 `json:"task_id"`
 	UserID uint64 `json:"user_id"`
 }

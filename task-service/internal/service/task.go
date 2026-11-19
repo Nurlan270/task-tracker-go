@@ -195,24 +195,30 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 	tasks := make([]*taskV1.Task, 0, len(list))
 
 	//	Convert list of tasks into list of gRPC tasks
-	for i, task := range list {
-		tasks[i] = &taskV1.Task{
+	for _, task := range list {
+		var completedAt *timestamppb.Timestamp
+
+		if task.CompletedAt != nil {
+			completedAt = timestamppb.New(*task.CompletedAt)
+		}
+
+		tasks = append(tasks, &taskV1.Task{
 			Title:       task.Title,
 			Description: task.Description,
-			CompletedAt: timestamppb.New(*task.CompletedAt),
-		}
+			CompletedAt: completedAt,
+		})
 	}
 
 	return &taskV1.ListResponse{Task: tasks}, nil
 }
 
-func (s *TaskService) MarkAsCompleted(
+func (s *TaskService) ToggleCompletion(
 	ctx context.Context,
-	r *taskV1.MarkAsCompletedRequest,
+	r *taskV1.ToggleCompletionRequest,
 ) (*emptypb.Empty, error) {
-	log := logger.Get().SetOp("service.task.MarkAsCompleted")
+	log := logger.Get().SetOp("service.task.ToggleCompletion")
 
-	body := &request.MarkTaskAsCompleted{
+	body := &request.ToggleCompletion{
 		TaskID: uint(r.GetTaskId()),
 		UserID: uint(r.GetUserId()),
 	}
@@ -235,8 +241,8 @@ func (s *TaskService) MarkAsCompleted(
 		UserID: body.UserID,
 	}
 
-	//	Mark task as completed
-	if err := s.taskRepo.MarkAsCompleted(ctx, task); err != nil {
+	//	Toggle task's completion time
+	if err := s.taskRepo.ToggleCompletion(ctx, task); err != nil {
 		if errors.Is(err, errs.ErrTaskNotFound) {
 			return nil, status.Error(codes.NotFound, message.ErrTaskNotFound)
 		}

@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TaskService_Create_FullMethodName          = "/task.v1.TaskService/Create"
-	TaskService_Update_FullMethodName          = "/task.v1.TaskService/Update"
-	TaskService_Delete_FullMethodName          = "/task.v1.TaskService/Delete"
-	TaskService_List_FullMethodName            = "/task.v1.TaskService/List"
-	TaskService_MarkAsCompleted_FullMethodName = "/task.v1.TaskService/MarkAsCompleted"
+	TaskService_Create_FullMethodName           = "/task.v1.TaskService/Create"
+	TaskService_Update_FullMethodName           = "/task.v1.TaskService/Update"
+	TaskService_Delete_FullMethodName           = "/task.v1.TaskService/Delete"
+	TaskService_List_FullMethodName             = "/task.v1.TaskService/List"
+	TaskService_ToggleCompletion_FullMethodName = "/task.v1.TaskService/ToggleCompletion"
 )
 
 // TaskServiceClient is the client API for TaskService service.
@@ -35,7 +35,7 @@ type TaskServiceClient interface {
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
-	MarkAsCompleted(ctx context.Context, in *MarkAsCompletedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ToggleCompletion(ctx context.Context, in *ToggleCompletionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type taskServiceClient struct {
@@ -86,10 +86,10 @@ func (c *taskServiceClient) List(ctx context.Context, in *ListRequest, opts ...g
 	return out, nil
 }
 
-func (c *taskServiceClient) MarkAsCompleted(ctx context.Context, in *MarkAsCompletedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *taskServiceClient) ToggleCompletion(ctx context.Context, in *ToggleCompletionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, TaskService_MarkAsCompleted_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, TaskService_ToggleCompletion_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ type TaskServiceServer interface {
 	Update(context.Context, *UpdateRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
-	MarkAsCompleted(context.Context, *MarkAsCompletedRequest) (*emptypb.Empty, error)
+	ToggleCompletion(context.Context, *ToggleCompletionRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedTaskServiceServer()
 }
 
@@ -127,8 +127,8 @@ func (UnimplementedTaskServiceServer) Delete(context.Context, *DeleteRequest) (*
 func (UnimplementedTaskServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedTaskServiceServer) MarkAsCompleted(context.Context, *MarkAsCompletedRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MarkAsCompleted not implemented")
+func (UnimplementedTaskServiceServer) ToggleCompletion(context.Context, *ToggleCompletionRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ToggleCompletion not implemented")
 }
 func (UnimplementedTaskServiceServer) mustEmbedUnimplementedTaskServiceServer() {}
 func (UnimplementedTaskServiceServer) testEmbeddedByValue()                     {}
@@ -223,20 +223,20 @@ func _TaskService_List_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TaskService_MarkAsCompleted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MarkAsCompletedRequest)
+func _TaskService_ToggleCompletion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ToggleCompletionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TaskServiceServer).MarkAsCompleted(ctx, in)
+		return srv.(TaskServiceServer).ToggleCompletion(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TaskService_MarkAsCompleted_FullMethodName,
+		FullMethod: TaskService_ToggleCompletion_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TaskServiceServer).MarkAsCompleted(ctx, req.(*MarkAsCompletedRequest))
+		return srv.(TaskServiceServer).ToggleCompletion(ctx, req.(*ToggleCompletionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -265,8 +265,8 @@ var TaskService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TaskService_List_Handler,
 		},
 		{
-			MethodName: "MarkAsCompleted",
-			Handler:    _TaskService_MarkAsCompleted_Handler,
+			MethodName: "ToggleCompletion",
+			Handler:    _TaskService_ToggleCompletion_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

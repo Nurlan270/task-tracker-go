@@ -381,8 +381,8 @@ func (x *Task) GetCompletedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// Mark task as completed
-type MarkAsCompletedRequest struct {
+// Toggle task's completion time
+type ToggleCompletionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Task's id
 	TaskId uint64 `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -392,20 +392,20 @@ type MarkAsCompletedRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *MarkAsCompletedRequest) Reset() {
-	*x = MarkAsCompletedRequest{}
+func (x *ToggleCompletionRequest) Reset() {
+	*x = ToggleCompletionRequest{}
 	mi := &file_task_v1_task_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MarkAsCompletedRequest) String() string {
+func (x *ToggleCompletionRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MarkAsCompletedRequest) ProtoMessage() {}
+func (*ToggleCompletionRequest) ProtoMessage() {}
 
-func (x *MarkAsCompletedRequest) ProtoReflect() protoreflect.Message {
+func (x *ToggleCompletionRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_task_v1_task_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -417,19 +417,19 @@ func (x *MarkAsCompletedRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MarkAsCompletedRequest.ProtoReflect.Descriptor instead.
-func (*MarkAsCompletedRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ToggleCompletionRequest.ProtoReflect.Descriptor instead.
+func (*ToggleCompletionRequest) Descriptor() ([]byte, []int) {
 	return file_task_v1_task_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *MarkAsCompletedRequest) GetTaskId() uint64 {
+func (x *ToggleCompletionRequest) GetTaskId() uint64 {
 	if x != nil {
 		return x.TaskId
 	}
 	return 0
 }
 
-func (x *MarkAsCompletedRequest) GetUserId() uint64 {
+func (x *ToggleCompletionRequest) GetUserId() uint64 {
 	if x != nil {
 		return x.UserId
 	}
@@ -461,16 +461,16 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x04Task\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12=\n" +
-	"\fcompleted_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"J\n" +
-	"\x16MarkAsCompletedRequest\x12\x17\n" +
+	"\fcompleted_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"K\n" +
+	"\x17ToggleCompletionRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x04R\x06taskId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x04R\x06userId2\xbc\x02\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId2\xbe\x02\n" +
 	"\vTaskService\x128\n" +
 	"\x06Create\x12\x16.task.v1.CreateRequest\x1a\x16.google.protobuf.Empty\x128\n" +
 	"\x06Update\x12\x16.task.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\x128\n" +
 	"\x06Delete\x12\x16.task.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\x123\n" +
-	"\x04List\x12\x14.task.v1.ListRequest\x1a\x15.task.v1.ListResponse\x12J\n" +
-	"\x0fMarkAsCompleted\x12\x1f.task.v1.MarkAsCompletedRequest\x1a\x16.google.protobuf.EmptyBGZEgithub.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1;task_v1b\x06proto3"
+	"\x04List\x12\x14.task.v1.ListRequest\x1a\x15.task.v1.ListResponse\x12L\n" +
+	"\x10ToggleCompletion\x12 .task.v1.ToggleCompletionRequest\x1a\x16.google.protobuf.EmptyBGZEgithub.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1;task_v1b\x06proto3"
 
 var (
 	file_task_v1_task_proto_rawDescOnce sync.Once
@@ -486,15 +486,15 @@ func file_task_v1_task_proto_rawDescGZIP() []byte {
 
 var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_task_v1_task_proto_goTypes = []any{
-	(*CreateRequest)(nil),          // 0: task.v1.CreateRequest
-	(*UpdateRequest)(nil),          // 1: task.v1.UpdateRequest
-	(*DeleteRequest)(nil),          // 2: task.v1.DeleteRequest
-	(*ListRequest)(nil),            // 3: task.v1.ListRequest
-	(*ListResponse)(nil),           // 4: task.v1.ListResponse
-	(*Task)(nil),                   // 5: task.v1.Task
-	(*MarkAsCompletedRequest)(nil), // 6: task.v1.MarkAsCompletedRequest
-	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),          // 8: google.protobuf.Empty
+	(*CreateRequest)(nil),           // 0: task.v1.CreateRequest
+	(*UpdateRequest)(nil),           // 1: task.v1.UpdateRequest
+	(*DeleteRequest)(nil),           // 2: task.v1.DeleteRequest
+	(*ListRequest)(nil),             // 3: task.v1.ListRequest
+	(*ListResponse)(nil),            // 4: task.v1.ListResponse
+	(*Task)(nil),                    // 5: task.v1.Task
+	(*ToggleCompletionRequest)(nil), // 6: task.v1.ToggleCompletionRequest
+	(*timestamppb.Timestamp)(nil),   // 7: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),           // 8: google.protobuf.Empty
 }
 var file_task_v1_task_proto_depIdxs = []int32{
 	5, // 0: task.v1.ListResponse.task:type_name -> task.v1.Task
@@ -503,12 +503,12 @@ var file_task_v1_task_proto_depIdxs = []int32{
 	1, // 3: task.v1.TaskService.Update:input_type -> task.v1.UpdateRequest
 	2, // 4: task.v1.TaskService.Delete:input_type -> task.v1.DeleteRequest
 	3, // 5: task.v1.TaskService.List:input_type -> task.v1.ListRequest
-	6, // 6: task.v1.TaskService.MarkAsCompleted:input_type -> task.v1.MarkAsCompletedRequest
+	6, // 6: task.v1.TaskService.ToggleCompletion:input_type -> task.v1.ToggleCompletionRequest
 	8, // 7: task.v1.TaskService.Create:output_type -> google.protobuf.Empty
 	8, // 8: task.v1.TaskService.Update:output_type -> google.protobuf.Empty
 	8, // 9: task.v1.TaskService.Delete:output_type -> google.protobuf.Empty
 	4, // 10: task.v1.TaskService.List:output_type -> task.v1.ListResponse
-	8, // 11: task.v1.TaskService.MarkAsCompleted:output_type -> google.protobuf.Empty
+	8, // 11: task.v1.TaskService.ToggleCompletion:output_type -> google.protobuf.Empty
 	7, // [7:12] is the sub-list for method output_type
 	2, // [2:7] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

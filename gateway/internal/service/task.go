@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/request"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/dto/response"
@@ -57,20 +58,25 @@ func (s *TaskService) List(ctx context.Context, req *request.ListTask) (response
 
 	//	Convert from gRPC
 	for _, task := range list.Task {
-		completedAt := task.CompletedAt.AsTime()
+		var completedAt *time.Time
+
+		if task.CompletedAt != nil {
+			t := task.CompletedAt.AsTime()
+			completedAt = &t
+		}
 
 		tasks = append(tasks, &entity.Task{
 			Title:       task.Title,
 			Description: task.Description,
-			CompletedAt: &completedAt,
+			CompletedAt: completedAt,
 		})
 	}
 
 	return response.ListTask{Tasks: tasks}, nil
 }
 
-func (s *TaskService) MarkAsCompleted(ctx context.Context, req *request.MarkTaskAsCompleted) error {
-	_, err := s.client.MarkAsCompleted(ctx, &taskV1.MarkAsCompletedRequest{
+func (s *TaskService) ToggleCompletion(ctx context.Context, req *request.ToggleCompletion) error {
+	_, err := s.client.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
 		TaskId: req.TaskID,
 		UserId: req.UserID,
 	})

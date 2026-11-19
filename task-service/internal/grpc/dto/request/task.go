@@ -23,7 +23,7 @@ type ListTask struct {
 	UserID uint `json:"user_id" validate:"required"`
 }
 
-type MarkTaskAsCompleted struct {
+type ToggleCompletion struct {
 	TaskID uint `json:"task_id" validate:"required"`
 	UserID uint `json:"user_id" validate:"required"`
 }

@@ -190,13 +190,13 @@ func (s *TaskServiceTestSuite) TestList() {
 	})
 }
 
-func (s *TaskServiceTestSuite) TestMarkAsCompleted() {
-	s.Run("it should not mark not existing task as completed", func() {
+func (s *TaskServiceTestSuite) TestToggleCompletion() {
+	s.Run("it should not set not existing task's completion time", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 
 		//	We didn't create any task yet
-		resp, err := s.taskSvc.MarkAsCompleted(ctx, &taskV1.MarkAsCompletedRequest{
+		resp, err := s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
 			TaskId: 100,
 			UserId: 5,
 		})
@@ -205,6 +205,56 @@ func (s *TaskServiceTestSuite) TestMarkAsCompleted() {
 		s.Require().Nil(resp)
 		s.Require().Equal(codes.NotFound, status.Code(err))
 		s.Require().ErrorContains(err, message.ErrTaskNotFound)
+	})
+
+	s.Run("it should set completion time to nil on second call", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task
+		createReq, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      5,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(createReq)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Toggle completion to current time
+		firstToggle, err := s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(firstToggle)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get just updated task and assert that it has no nil completed_at field
+		firstList, err := s.taskRepo.List(ctx, 5)
+
+		s.Require().NoError(err)
+		s.Require().NotEmpty(firstList)
+		s.Require().NotNil(firstList[0].CompletedAt)
+
+		//	Toggle completion to nil
+		secondToggle, err := s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(secondToggle)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get just updated task and assert that it has nil completed_at field
+		secondList, err := s.taskRepo.List(ctx, 5)
+
+		s.Require().NoError(err)
+		s.Require().NotEmpty(secondList)
+		s.Require().Nil(secondList[0].CompletedAt)
 	})
 }
 

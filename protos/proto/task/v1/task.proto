@@ -12,7 +12,7 @@ service TaskService {
   rpc Update(UpdateRequest) returns (google.protobuf.Empty);
   rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
   rpc List(ListRequest) returns (ListResponse);
-  rpc MarkAsCompleted(MarkAsCompletedRequest) returns (google.protobuf.Empty);
+  rpc ToggleCompletion(ToggleCompletionRequest) returns (google.protobuf.Empty);
 }
 
 //  Create new task
@@ -79,8 +79,8 @@ message Task {
   google.protobuf.Timestamp completed_at = 3;
 }
 
-//  Mark task as completed
-message MarkAsCompletedRequest {
+//  Toggle task's completion time
+message ToggleCompletionRequest {
   //  Task's id
   uint64 task_id = 1;
 

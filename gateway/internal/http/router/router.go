@@ -87,11 +87,11 @@ func (r *Router) registerAuthV1Routes(v1 *gin.RouterGroup) {
 
 func (r *Router) registerTaskV1Routes(v1 *gin.RouterGroup) {
 	//	Task v1 Routes (authorized access only)
-	task := v1.Group("/task", r.authMW.RequireAuth())
+	task := v1.Group("/tasks", r.authMW.RequireAuth())
 
 	task.GET("/", r.taskH.List)
 	task.POST("/", r.taskH.Create)
 	task.PATCH("/:id", r.taskH.Update)
 	task.DELETE("/:id", r.taskH.Delete)
-	task.PATCH("/:id/completed", r.taskH.MarkTaskAsCompleted)
+	task.PATCH("/:id/toggle-completion", r.taskH.ToggleCompletion)
 }

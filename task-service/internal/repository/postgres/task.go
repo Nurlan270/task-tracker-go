@@ -2,12 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"gorm.io/gorm"
 
-	"github.com/Nurlan270/task-tracker-go/task-service/internal/errors"
+	errs "github.com/Nurlan270/task-tracker-go/task-service/internal/errors"
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/models"
 
 	ctxlib "github.com/Nurlan270/task-tracker-go/common/context"
@@ -49,7 +50,7 @@ func (r *TaskRepository) Update(ctx context.Context, task *models.Task) error {
 
 	if updated == 0 {
 		//	Specified task not found
-		return errors.ErrTaskNotFound
+		return errs.ErrTaskNotFound
 	}
 
 	return nil
@@ -75,7 +76,7 @@ func (r *TaskRepository) Delete(ctx context.Context, task *models.Task, isForce 
 
 	if result.RowsAffected == 0 {
 		//	Specified task not found
-		return errors.ErrTaskNotFound
+		return errs.ErrTaskNotFound
 	}
 
 	return nil
@@ -96,22 +97,38 @@ func (r *TaskRepository) List(ctx context.Context, userID uint) ([]models.Task, 
 	return list, nil
 }
 
-func (r *TaskRepository) MarkAsCompleted(ctx context.Context, task *models.Task) error {
-	const op = "repository.postgres.task.MarkAsCompleted"
+func (r *TaskRepository) ToggleCompletion(ctx context.Context, task *models.Task) error {
+	const op = "repository.postgres.task.ToggleCompletion"
 
 	db := ctxlib.GetDB(ctx, r.db)
 
-	updated, err := gorm.G[models.Task](db).
+	dbTask, err := gorm.G[models.Task](db).
 		Where("id = ?", task.ID).
 		Where("user_id = ?", task.UserID).
-		Update(ctx, "completed_at", time.Now())
+		First(ctx)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			//	The task not found
+			return errs.ErrTaskNotFound
+		}
+
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if updated == 0 {
-		//	Specified task not found
-		return errors.ErrTaskNotFound
+	query := gorm.G[models.Task](db).
+		Where("id = ?", task.ID).
+		Where("user_id = ?", task.UserID)
+
+	if dbTask.CompletedAt == nil {
+		//	The task is not completed yet; set completed_at to current time
+		if _, err = query.Update(ctx, "completed_at", time.Now()); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+	} else {
+		//	The task is already completed; set completed_at to nil
+		if _, err = query.Update(ctx, "completed_at", nil); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
 	}
 
 	return nil
