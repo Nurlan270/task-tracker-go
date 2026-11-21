@@ -1,212 +1,123 @@
-
 (function ($, window) {
   "use strict";
-
   const config = window.TASK_TRACKER_CONFIG;
-
   let refreshPromise = null;
   let sessionVersion = 0;
-  let refreshRejected = false;
 
-  function parseResponse(body) {
-    if (!body) return {};
-
-    if (typeof body === "object") return body;
-
-    try {
-      return JSON.parse(body);
-    } catch (_) {
-      return {};
-    }
+  function parseBody(text) {
+    if (!text) return {};
+    if (typeof text === "object") return text;
+    try { return JSON.parse(text); } catch (_) { return {}; }
   }
 
-  // Sends one HTTP request without automatic refresh handling.
-  function send(endpointName, data) {
-    const endpoint = config.ENDPOINTS[endpointName];
-
-    if (!endpoint) {
-      const xhr = {
-        status: 0,
-        responseJSON: {}
-      };
-
-      return $.Deferred()
-          .reject(xhr, "error")
-          .promise();
-    }
-
-    const method = endpoint.method.toUpperCase();
-
+  function rawRequest(url, method, data) {
     const options = {
-      url: config.API_BASE.replace(/\/$/, "") + endpoint.url,
-      method: method,
-      dataType: "text",
-      headers: {
-        Accept: "application/json"
-      },
-      xhrFields: {
-        withCredentials: true
-      }
+      url, method, dataType: "text", contentType: "application/json; charset=utf-8",
+      xhrFields: { withCredentials: true }, headers: { Accept: "application/json" }
     };
-
-    if (data !== undefined && method !== "GET") {
-      options.contentType = "application/json; charset=utf-8";
-      options.data = JSON.stringify(data);
-    }
-
-    const deferred = $.Deferred();
-
-    $.ajax(options)
-        .done(function (body, textStatus, xhr) {
-          deferred.resolve(
-              parseResponse(body),
-              textStatus,
-              xhr
-          );
-        })
-        .fail(function (xhr, textStatus, error) {
-          xhr.responseJSON = parseResponse(xhr.responseText);
-
-          deferred.reject(xhr, textStatus, error);
-        });
-
-    return deferred.promise();
+    if (data !== undefined && method !== "GET") options.data = JSON.stringify(data);
+    const d = $.Deferred();
+    $.ajax(options).done(function (body, status, xhr) {
+      d.resolve(parseBody(body), status, xhr);
+    }).fail(function (xhr, status, error) {
+      xhr.responseJSON = parseBody(xhr.responseText);
+      d.reject(xhr, status, error);
+    });
+    return d.promise();
   }
 
-  // Shared refresh request: concurrent 401 responses
-  // reuse the same promise instead of refreshing multiple times.
-  function refreshSession() {
-    if (refreshRejected) {
-      return $.Deferred()
-          .reject({
-            status: 401,
-            responseJSON: {}
-          }, "error")
-          .promise();
+  function authRaw(name, data) {
+    const endpoint = config.ENDPOINTS[name];
+    if (!endpoint) return $.Deferred().reject({ status: 0, responseJSON: { message: "" } }).promise();
+    return rawRequest(config.API_BASE.replace(/\/$/, "") + endpoint.url, endpoint.method.toUpperCase(), data);
+  }
+
+  function refresh() {
+    if (refreshPromise) return refreshPromise;
+    const current = authRaw("refresh");
+    refreshPromise = current;
+    current.done(function () { sessionVersion++; });
+    current.always(function () { if (refreshPromise === current) refreshPromise = null; });
+    return current;
+  }
+
+  function redirectToLogin() {
+    if (document.body.classList.contains("dashboard-page") && !/^\/login\/?$/.test(window.location.pathname)) {
+      window.location.replace("/login/");
     }
+  }
 
-    if (refreshPromise) {
-      return refreshPromise;
-    }
-
-    const currentPromise = send("refresh");
-
-    refreshPromise = currentPromise;
-
-    currentPromise.done(function () {
-      sessionVersion++;
-      refreshRejected = false;
-    });
-
-    currentPromise.fail(function (xhr) {
-      // Don't repeatedly attempt an invalid/expired refresh token.
-      if (xhr.status === 401) {
-        refreshRejected = true;
+  function requestURL(url, method, data, retry, originalVersion) {
+    const d = $.Deferred();
+    const versionAtStart = originalVersion == null ? sessionVersion : originalVersion;
+    rawRequest(url, method, data).done(function (body, status, xhr) {
+      d.resolve(body, status, xhr);
+    }).fail(function (xhr, status, error) {
+      if (xhr.status !== 401 || retry) {
+        if (xhr.status === 401 && retry) redirectToLogin();
+        d.reject(xhr, status, error); return;
       }
+      const refreshTask = sessionVersion !== versionAtStart
+        ? $.Deferred().resolve().promise()
+        : refresh();
+      refreshTask.done(function () {
+        requestURL(url, method, data, true, sessionVersion)
+          .done(function (body, retryStatus, retryXhr) { d.resolve(body, retryStatus, retryXhr); })
+          .fail(function (retryXhr, retryStatus, retryError) {
+            if (retryXhr.status === 401) redirectToLogin();
+            d.reject(retryXhr, retryStatus, retryError);
+          });
+      }).fail(function () {
+        redirectToLogin();
+        d.reject(xhr, status, error);
+      });
     });
-
-    currentPromise.always(function () {
-      if (refreshPromise === currentPromise) {
-        refreshPromise = null;
-      }
-    });
-
-    return currentPromise;
+    return d.promise();
   }
 
-  // Makes an API request and automatically refreshes on 401.
-  function request(endpointName, data, alreadyRetried) {
-    const deferred = $.Deferred();
-    const requestVersion = sessionVersion;
 
-    const excludedFromRefresh = [
-      "login",
-      "register",
-      "refresh"
-    ];
-
-    send(endpointName, data)
-        .done(function (response, textStatus, xhr) {
-          // Successful authentication changes the session.
-          if (
-              endpointName === "login" ||
-              endpointName === "register"
-          ) {
-            sessionVersion++;
-            refreshRejected = false;
-          }
-
-          if (endpointName === "logout") {
-            sessionVersion++;
-            refreshRejected = true;
-          }
-
-          deferred.resolve(response, textStatus, xhr);
-        })
-        .fail(function (xhr, textStatus, error) {
-          const shouldRefresh =
-              xhr.status === 401 &&
-              !alreadyRetried &&
-              !excludedFromRefresh.includes(endpointName);
-
-          if (!shouldRefresh) {
-            deferred.reject(xhr, textStatus, error);
-            return;
-          }
-
-          // Another request may already have refreshed
-          // the session while this request was in flight.
-          const refresh = sessionVersion !== requestVersion
-              ? $.Deferred().resolve().promise()
-              : refreshSession();
-
-          refresh
-              .done(function () {
-                // Retry the original request only once.
-                request(endpointName, data, true)
-                    .done(function (response, status, retryXhr) {
-                      deferred.resolve(response, status, retryXhr);
-                    })
-                    .fail(function (retryXhr, retryStatus, retryError) {
-                      deferred.reject(
-                          retryXhr,
-                          retryStatus,
-                          retryError
-                      );
-                    });
-              })
-              .fail(function (refreshXhr, refreshStatus, refreshError) {
-                deferred.reject(
-                    refreshXhr || xhr,
-                    refreshStatus || textStatus,
-                    refreshError || error
-                );
-              });
+  function authRequest(name, data) {
+    if (name === "login" || name === "register" || name === "refresh") return authRaw(name, data);
+    const version = sessionVersion;
+    const d = $.Deferred();
+    authRaw(name, data).done(function (body, status, xhr) {
+      d.resolve(body, status, xhr);
+    }).fail(function (xhr, status, error) {
+      if (xhr.status !== 401) { d.reject(xhr, status, error); return; }
+      const refreshTask = sessionVersion !== version ? $.Deferred().resolve().promise() : refresh();
+      refreshTask.done(function () {
+        authRaw(name, data).done(function (body, retryStatus, retryXhr) {
+          d.resolve(body, retryStatus, retryXhr);
+        }).fail(function (retryXhr, retryStatus, retryError) {
+          retryXhr.responseJSON = parseBody(retryXhr.responseText);
+          if (retryXhr.status === 401) redirectToLogin();
+          d.reject(retryXhr, retryStatus, retryError);
         });
-
-    return deferred.promise();
+      }).fail(function () {
+        redirectToLogin();
+        d.reject(xhr, status, error);
+      });
+    });
+    return d.promise();
   }
 
+  const taskURL = config.TASKS_BASE;
   window.TaskTrackerAPI = {
-    request: request,
-
-    register: function (data) {
-      return request("register", data);
-    },
-
-    login: function (data) {
-      return request("login", data);
-    },
-
-    logout: function () {
-      return request("logout");
-    },
-
-    refresh: refreshSession,
-
-    user: function () {
-      return request("user");
+    request: authRequest,
+    register: data => authRequest("register", data),
+    login: data => authRequest("login", data),
+    logout: () => authRequest("logout"),
+    refresh: refresh,
+    user: () => authRequest("user"),
+    tasks: {
+      list: type => requestURL(taskURL + "?type=" + encodeURIComponent(type), "GET"),
+      create: payload => requestURL(taskURL, "POST", payload),
+      update: (id, payload) => requestURL(taskURL + encodeURIComponent(id), "PATCH", payload),
+      remove: id => requestURL(taskURL + encodeURIComponent(id), "DELETE"),
+      removeForce: id => requestURL(taskURL, "DELETE", { ids: [id] }),
+      removeBulk: ids => requestURL(taskURL, "DELETE", { ids: ids }),
+      restore: id => requestURL(taskURL + encodeURIComponent(id) + "/restore", "PATCH"),
+      toggleCompletion: id => { if (id === undefined || id === null || id === "") return $.Deferred().reject({ status: 0, responseJSON: { message: "Missing task ID" } }).promise(); return requestURL(taskURL + encodeURIComponent(id) + "/toggle-completion", "PATCH"); }
     }
   };
-
 })(jQuery, window);

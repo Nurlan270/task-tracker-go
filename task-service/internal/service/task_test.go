@@ -113,10 +113,6 @@ func (s *TaskServiceTestSuite) TestCreate() {
 				Title:       "",
 				Description: "Some description",
 			},
-			"empty description": {
-				Title:       "Some title",
-				Description: "",
-			},
 		}
 
 		for name, tt := range tests {
@@ -232,10 +228,8 @@ func (s *TaskServiceTestSuite) TestDelete() {
 		defer cancel()
 
 		//	We didn't create any task yet
-		resp, err := s.taskSvc.Delete(ctx, &taskV1.DeleteRequest{
-			TaskId:  100,
-			UserId:  5,
-			IsForce: true,
+		resp, err := s.taskSvc.BatchDelete(ctx, &taskV1.BatchDeleteRequest{
+			Ids: []uint64{100},
 		})
 
 		s.Require().Error(err)

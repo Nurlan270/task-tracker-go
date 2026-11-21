@@ -40,7 +40,7 @@ func (s *TaskService) Create(ctx context.Context, r *taskV1.CreateRequest) (*emp
 	log := logger.Get().SetOp("service.task.Create")
 
 	body := &request.CreateTask{
-		UserID:      uint(r.GetUserId()),
+		UserID:      r.GetUserId(),
 		Title:       r.GetTitle(),
 		Description: r.GetDescription(),
 	}
@@ -78,8 +78,8 @@ func (s *TaskService) Update(ctx context.Context, r *taskV1.UpdateRequest) (*emp
 	log := logger.Get().SetOp("service.task.Update")
 
 	body := &request.UpdateTask{
-		TaskID:      uint(r.GetTaskId()),
-		UserID:      uint(r.GetUserId()),
+		TaskID:      r.GetTaskId(),
+		UserID:      r.GetUserId(),
 		Title:       r.GetTitle(),
 		Description: r.GetDescription(),
 	}
@@ -118,13 +118,88 @@ func (s *TaskService) Update(ctx context.Context, r *taskV1.UpdateRequest) (*emp
 	return nil, nil
 }
 
-func (s *TaskService) Delete(ctx context.Context, r *taskV1.DeleteRequest) (*emptypb.Empty, error) {
-	log := logger.Get().SetOp("service.task.Delete")
+//nolint:dupl
+func (s *TaskService) SoftDelete(ctx context.Context, r *taskV1.SoftDeleteRequest) (*emptypb.Empty, error) {
+	log := logger.Get().SetOp("service.task.SoftDelete")
 
-	body := &request.DeleteTask{
-		TaskID:  uint(r.GetTaskId()),
-		UserID:  uint(r.GetUserId()),
-		IsForce: r.GetIsForce(),
+	body := &request.SoftDeleteTask{
+		TaskID: r.GetTaskId(),
+		UserID: r.GetUserId(),
+	}
+
+	//	Validate request body
+	if err := s.validate.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
+			log.Error("internal validation error", zap.Error(err))
+
+			return nil, status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil, response.ToGRPCValidationErr(err)
+	}
+
+	task := &models.Task{
+		ID:     body.TaskID,
+		UserID: body.UserID,
+	}
+
+	//	Soft delete task
+	if err := s.taskRepo.SoftDelete(ctx, task); err != nil {
+		if errors.Is(err, errs.ErrTaskNotFound) {
+			return nil, status.Error(codes.NotFound, message.ErrTaskNotFound)
+		}
+
+		log.Error("failed to delete task", zap.Error(err))
+
+		return nil, status.Error(codes.Internal, message.ErrInternal)
+	}
+
+	return nil, nil
+}
+
+func (s *TaskService) BatchDelete(ctx context.Context, r *taskV1.BatchDeleteRequest) (*emptypb.Empty, error) {
+	log := logger.Get().SetOp("service.task.BatchDelete")
+
+	body := &request.BatchDeleteTask{
+		IDs: r.GetIds(),
+	}
+
+	//	Validate request body
+	if err := s.validate.Struct(body); err != nil {
+		var validationErr *validator.ErrValidation
+
+		if !errors.As(err, &validationErr) {
+			log.Error("internal validation error", zap.Error(err))
+
+			return nil, status.Error(codes.Internal, message.ErrInternal)
+		}
+
+		return nil, response.ToGRPCValidationErr(err)
+	}
+
+	//	Batch delete tasks by ids
+	if err := s.taskRepo.BatchDelete(ctx, body.IDs); err != nil {
+		if errors.Is(err, errs.ErrTaskNotFound) {
+			return nil, status.Error(codes.NotFound, message.ErrTaskNotFound)
+		}
+
+		log.Error("failed to delete task", zap.Error(err))
+
+		return nil, status.Error(codes.Internal, message.ErrInternal)
+	}
+
+	return nil, nil
+}
+
+//nolint:dupl
+func (s *TaskService) Restore(ctx context.Context, r *taskV1.RestoreRequest) (*emptypb.Empty, error) {
+	log := logger.Get().SetOp("service.task.Restore")
+
+	body := &request.RestoreTask{
+		TaskID: r.GetTaskId(),
+		UserID: r.GetUserId(),
 	}
 
 	//	Validate request body
@@ -146,7 +221,7 @@ func (s *TaskService) Delete(ctx context.Context, r *taskV1.DeleteRequest) (*emp
 	}
 
 	//	Delete task
-	if err := s.taskRepo.Delete(ctx, task, body.IsForce); err != nil {
+	if err := s.taskRepo.Restore(ctx, task); err != nil {
 		if errors.Is(err, errs.ErrTaskNotFound) {
 			return nil, status.Error(codes.NotFound, message.ErrTaskNotFound)
 		}
@@ -163,7 +238,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 	log := logger.Get().SetOp("service.task.List")
 
 	body := &request.ListTask{
-		UserID: uint(r.GetUserId()),
+		UserID: r.GetUserId(),
 		Type:   models.TaskType(r.GetType()),
 	}
 
@@ -204,8 +279,10 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 		}
 
 		tasks = append(tasks, &taskV1.Task{
+			Id:          task.ID,
 			Title:       task.Title,
 			Description: task.Description,
+			CreatedAt:   timestamppb.New(task.CreatedAt),
 			CompletedAt: completedAt,
 		})
 	}
@@ -213,6 +290,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 	return &taskV1.ListResponse{Task: tasks}, nil
 }
 
+//nolint:dupl
 func (s *TaskService) ToggleCompletion(
 	ctx context.Context,
 	r *taskV1.ToggleCompletionRequest,
@@ -220,8 +298,8 @@ func (s *TaskService) ToggleCompletion(
 	log := logger.Get().SetOp("service.task.ToggleCompletion")
 
 	body := &request.ToggleCompletion{
-		TaskID: uint(r.GetTaskId()),
-		UserID: uint(r.GetUserId()),
+		TaskID: r.GetTaskId(),
+		UserID: r.GetUserId(),
 	}
 
 	//	Validate request body

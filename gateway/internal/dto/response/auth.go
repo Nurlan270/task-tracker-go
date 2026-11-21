@@ -16,10 +16,6 @@ type Login struct {
 	ExpiresIn    time.Duration `json:"expires_in"`
 }
 
-type Logout struct {
-	RefreshToken string `json:"refresh_token"`
-}
-
 type Refresh struct {
 	AccessToken  string        `json:"access_token"`
 	RefreshToken string        `json:"refresh_token"`
@@ -27,7 +23,7 @@ type Refresh struct {
 }
 
 type GetUser struct {
-	ID    uint   `json:"id"`
+	ID    uint64 `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
 }

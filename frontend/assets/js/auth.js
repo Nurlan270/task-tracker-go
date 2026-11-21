@@ -17,36 +17,53 @@
       .prop("hidden", false);
   }
 
+  function parseResponse(raw) {
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return {};
+    }
+  }
+
   function responseBody(xhr) {
     if (xhr.responseJSON) return xhr.responseJSON;
-    if (xhr.responseText) {
-      try { return JSON.parse(xhr.responseText); } catch (_) { /* Non-JSON response. */ }
-    }
-    return {};
+    return parseResponse(xhr.responseText);
+  }
+
+  function flattenErrors(value) {
+    if (value == null) return [];
+    if (Array.isArray(value)) return value.flatMap(flattenErrors);
+    if (typeof value === "object") return Object.values(value).flatMap(flattenErrors);
+    return [String(value)];
   }
 
   function handleError(xhr, $form) {
     const body = responseBody(xhr);
     const errors = body.errors || body.validation_errors || null;
     let firstInvalid = null;
+    const errorEntries = errors && typeof errors === "object" ? Object.entries(errors) : [];
 
-    if (errors && typeof errors === "object") {
-      Object.keys(errors).forEach(function (field) {
-        const message = Array.isArray(errors[field])
-          ? errors[field].join(" ")
-          : String(errors[field]);
+    if (errorEntries.length) {
+      errorEntries.forEach(function ([field, value]) {
+        const messages = flattenErrors(value).join(" ");
         const $input = $form.find('[name="' + field + '"]');
-
         if ($input.length) {
           $input.attr("aria-invalid", "true").closest(".form-field").addClass("has-error");
-          $form.find('[data-error-for="' + field + '"]').text(message);
+          $form.find('[data-error-for="' + field + '"]').text(messages);
           if (!firstInvalid) firstInvalid = $input;
+        } else {
+          showAlert(messages, "error");
         }
       });
+      // Validation errors take precedence over the generic API message.
+      if (!firstInvalid && !errorEntries.some(([field]) => $form.find('[name="' + field + '"]').length === 0)) {
+        $("#form-alert").prop("hidden", true).text("");
+      }
+    } else {
+      showAlert(body.message, "error");
     }
 
-    // All user-facing text comes from the API response.
-    showAlert(body.message, "error");
     if (firstInvalid) firstInvalid.trigger("focus");
   }
 
@@ -67,18 +84,14 @@
 
       setLoading($form, true);
       window.TaskTrackerAPI[action](payload)
-        .done(function (response) {
-          showAlert(response && response.message, "success");
+        .done(function (rawResponse) {
+          const response = parseResponse(rawResponse);
+          showAlert(response.message, "success");
           window.setTimeout(function () {
             window.location.assign(window.TASK_TRACKER_CONFIG.AUTH_SUCCESS_URL);
           }, 450);
         })
         .fail(function (xhr) {
-          if (xhr.status === 403) {
-            window.location.replace("/");
-            return;
-          }
-
           handleError(xhr, $form);
         })
         .always(function () {

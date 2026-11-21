@@ -7,8 +7,8 @@ import (
 )
 
 type Task struct {
-	ID     uint `gorm:"primaryKey"`
-	UserID uint `gorm:"not null;index:idx_tasks_user_id_completed_at"`
+	ID     uint64 `gorm:"primaryKey"`
+	UserID uint64 `gorm:"not null;index:idx_tasks_user_id_completed_at"`
 
 	Title       string `gorm:"not null;size:100"`
 	Description string `gorm:"size:5000"`

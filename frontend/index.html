@@ -5,25 +5,56 @@
   <meta name="theme-color" content="#f7f8fc"><title>Task Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=14">
 </head>
-<body>
+<body class="dashboard-page auth-pending">
   <div class="page-shell">
     <header class="site-header" id="site-header">
       <a class="brand" href="/" aria-label="Task Tracker home"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.2 4.2L19.5 6.8"/></svg></span><span>Task<span class="brand-light">Tracker</span></span></a>
-      <nav class="header-actions" aria-label="Main navigation"><a class="button button-ghost button-small" href="/login/">Login</a><a class="button button-primary button-small" href="/register/">Register</a></nav>
+      <nav class="header-actions" aria-label="Main navigation" aria-busy="true"></nav>
     </header>
-    <main class="home-main">
-      <section class="welcome-card">
-        <div class="eyebrow"><span class="eyebrow-dot"></span> A little more organized, every day</div>
-        <div class="hero-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="8" width="30" height="33" rx="7"/><path d="M17 19h14M17 26h14M17 33h8M15 8V5m18 3V5"/><path d="m29 31 3 3 6-7"/></svg></div>
-        <h1>Make room for<br><span>what matters.</span></h1>
-        <p class="welcome-copy">Keep your tasks in one place, stay focused on your priorities, and make progress one step at a time.</p>
-        <div class="hero-actions"><a class="button button-primary" href="/register/">Get started <span aria-hidden="true">→</span></a><a class="button button-secondary" href="/login/">I already have an account</a></div>
-        <p class="micro-copy">Simple planning. Clear progress. Less mental clutter.</p>
+
+    <main class="task-workspace" id="task-workspace" aria-label="Task workspace">
+      <aside class="task-sidebar" aria-label="Task sections">
+        <div class="sidebar-label">My Tasks</div>
+        <button class="task-nav-item is-active" data-task-type="uncompleted" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v4.7l3 1.8"/></svg><span>Uncompleted</span><span class="nav-count" id="count-uncompleted"></span>
+        </button>
+        <button class="task-nav-item" data-task-type="completed" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg><span>Completed</span><span class="nav-count" id="count-completed"></span>
+        </button>
+        <button class="task-nav-item" data-task-type="deleted" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9 7V4.5h6V7m3 0-.8 12H6.8L6 7m4 3v6m4-6v6"/></svg><span>Trash</span><span class="nav-count" id="count-deleted"></span>
+        </button>
+      </aside>
+
+      <section class="task-list-pane" aria-label="Task list">
+        <div class="task-list-header">
+          <div><p class="task-list-kicker">WORKSPACE</p><h1 id="section-title">Uncompleted tasks</h1><p class="task-list-subtitle" id="section-subtitle">Tasks you still need to complete</p></div>
+          <button type="button" class="button button-primary add-task-button" id="add-task-button"><span aria-hidden="true">+</span> New Task</button>
+        </div>
+        <form class="quick-create" id="quick-create-form" hidden>
+          <input name="title" maxlength="255" placeholder="Task title" required aria-label="Task title"><span class="field-error create-title-error"></span>
+          <textarea name="description" rows="2" placeholder="Description (optional)" aria-label="Description"></textarea><span class="field-error create-description-error"></span>
+          <div class="quick-create-actions"><button type="button" class="button button-secondary button-small" id="cancel-create">Cancel</button><button type="submit" class="button button-primary button-small" id="create-task-submit">Create</button></div>
+          <p class="task-inline-message" id="create-task-message" role="alert"></p>
+        </form>
+        <div class="task-list-message" id="task-list-message" role="status"></div>
+        <div class="task-list" id="task-list" aria-live="polite"></div>
       </section>
+
+
+      <aside class="task-detail-pane" id="task-detail-pane" aria-label="Task details">
+        <div class="task-detail-empty" id="task-detail-empty"><div class="detail-empty-icon">◇</div><h2>Select a task</h2><p>Details of the selected task will appear here.</p></div>
+        <div class="task-detail-content" id="task-detail-content" hidden></div>
+      </aside>
     </main>
-    <footer class="site-footer"><span>© <span id="year"></span> Task Tracker</span><span>Проект <a href="https://github.com/Nurlan270/task-tracker-go" target="_blank" rel="noopener noreferrer">«Планировщик задач»</a></span></footer>
+    <footer class="site-footer"><span>© <span id="year"></span> Task Tracker</span><span>Project <a href="https://github.com/Nurlan270/task-tracker-go" target="_blank" rel="noopener noreferrer">Task Tracker</a></span></footer>
   </div>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script><script src="/assets/js/config.js"></script><script src="/assets/js/api.js"></script><script src="/assets/js/common.js"></script>
-</body></html>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="/assets/js/config.js?v=13"></script>
+  <script src="/assets/js/api.js?v=15"></script>
+  <script src="/assets/js/common.js?v=13"></script>
+  <script src="/assets/js/tasks.js?v=14"></script>
+</body>
+</html>

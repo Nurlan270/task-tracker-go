@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"io"
 
 	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func validateRequest[T any](c *gin.Context, v *validator.Validate, before func(*
 	}
 
 	//	Bind request body
-	if err := c.ShouldBind(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil && !errors.Is(err, io.EOF) {
 		httplib.AbortWithErr(c, errs.ErrBadRequest)
 		return nil
 	}

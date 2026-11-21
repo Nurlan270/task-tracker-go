@@ -9,7 +9,9 @@ import (
 type TaskRepository interface {
 	Create(ctx context.Context, task *models.Task) error
 	Update(ctx context.Context, task *models.Task) error
-	Delete(ctx context.Context, task *models.Task, isForce bool) error
-	List(ctx context.Context, userID uint, taskType models.TaskType) ([]models.Task, error)
+	SoftDelete(ctx context.Context, task *models.Task) error
+	Restore(ctx context.Context, task *models.Task) error
+	BatchDelete(ctx context.Context, ids []uint64) error
+	List(ctx context.Context, userID uint64, taskType models.TaskType) ([]models.Task, error)
 	ToggleCompletion(ctx context.Context, task *models.Task) error
 }

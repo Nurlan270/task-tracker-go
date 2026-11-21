@@ -10,9 +10,11 @@ import "google/protobuf/timestamp.proto";
 service TaskService {
   rpc Create(CreateRequest) returns (google.protobuf.Empty);
   rpc Update(UpdateRequest) returns (google.protobuf.Empty);
-  rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
-  rpc List(ListRequest) returns (ListResponse);
+  rpc SoftDelete(SoftDeleteRequest) returns (google.protobuf.Empty);
+  rpc BatchDelete(BatchDeleteRequest) returns (google.protobuf.Empty);
+  rpc Restore(RestoreRequest) returns (google.protobuf.Empty);
   rpc ToggleCompletion(ToggleCompletionRequest) returns (google.protobuf.Empty);
+  rpc List(ListRequest) returns (ListResponse);
 }
 
 //  Create new task
@@ -42,17 +44,28 @@ message UpdateRequest {
   string description = 4;
 }
 
-//  Delete task.
-//  Deletion could be either force or soft based on is_force argument
-message DeleteRequest {
+//  Soft delete task
+message SoftDeleteRequest {
   //  Task's id
   uint64 task_id = 1;
 
   //  Task owner's id
   uint64 user_id = 2;
+}
 
-  //  Flag to determine whether this request is for force or soft deletion
-  bool is_force = 3;
+//  Restore task
+message RestoreRequest {
+  //  Task's id
+  uint64 task_id = 1;
+
+  //  Task owner's id
+  uint64 user_id = 2;
+}
+
+//  Permanently delete tasks in batch
+message BatchDeleteRequest {
+  //  Tasks' ids
+  repeated uint64 ids = 1;
 }
 
 enum TaskType {
@@ -71,22 +84,28 @@ message ListRequest {
   TaskType type = 2;
 }
 
+//  Task
+message Task {
+  //  Task's id
+  uint64 id = 1;
+
+  //  Task's title
+  string title = 2;
+
+  //  Task's description
+  string description = 3;
+
+  //  Task's creation time
+  google.protobuf.Timestamp created_at = 4;
+
+  //  Task's completion time
+  google.protobuf.Timestamp completed_at = 5;
+}
+
 //  List of user's tasks
 message ListResponse {
   //  List of tasks
   repeated Task task = 1;
-}
-
-//  Task
-message Task {
-  //  Task's title
-  string title = 1;
-
-  //  Task's description
-  string description = 2;
-
-  //  Task's completion time
-  google.protobuf.Timestamp completed_at = 3;
 }
 
 //  Toggle task's completion time

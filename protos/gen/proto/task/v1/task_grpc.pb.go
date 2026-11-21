@@ -22,9 +22,11 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TaskService_Create_FullMethodName           = "/task.v1.TaskService/Create"
 	TaskService_Update_FullMethodName           = "/task.v1.TaskService/Update"
-	TaskService_Delete_FullMethodName           = "/task.v1.TaskService/Delete"
-	TaskService_List_FullMethodName             = "/task.v1.TaskService/List"
+	TaskService_SoftDelete_FullMethodName       = "/task.v1.TaskService/SoftDelete"
+	TaskService_BatchDelete_FullMethodName      = "/task.v1.TaskService/BatchDelete"
+	TaskService_Restore_FullMethodName          = "/task.v1.TaskService/Restore"
 	TaskService_ToggleCompletion_FullMethodName = "/task.v1.TaskService/ToggleCompletion"
+	TaskService_List_FullMethodName             = "/task.v1.TaskService/List"
 )
 
 // TaskServiceClient is the client API for TaskService service.
@@ -33,9 +35,11 @@ const (
 type TaskServiceClient interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	SoftDelete(ctx context.Context, in *SoftDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	BatchDelete(ctx context.Context, in *BatchDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ToggleCompletion(ctx context.Context, in *ToggleCompletionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
 }
 
 type taskServiceClient struct {
@@ -66,20 +70,30 @@ func (c *taskServiceClient) Update(ctx context.Context, in *UpdateRequest, opts 
 	return out, nil
 }
 
-func (c *taskServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *taskServiceClient) SoftDelete(ctx context.Context, in *SoftDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, TaskService_Delete_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, TaskService_SoftDelete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *taskServiceClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+func (c *taskServiceClient) BatchDelete(ctx context.Context, in *BatchDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListResponse)
-	err := c.cc.Invoke(ctx, TaskService_List_FullMethodName, in, out, cOpts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, TaskService_BatchDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *taskServiceClient) Restore(ctx context.Context, in *RestoreRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, TaskService_Restore_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,15 +110,27 @@ func (c *taskServiceClient) ToggleCompletion(ctx context.Context, in *ToggleComp
 	return out, nil
 }
 
+func (c *taskServiceClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListResponse)
+	err := c.cc.Invoke(ctx, TaskService_List_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TaskServiceServer is the server API for TaskService service.
 // All implementations must embed UnimplementedTaskServiceServer
 // for forward compatibility.
 type TaskServiceServer interface {
 	Create(context.Context, *CreateRequest) (*emptypb.Empty, error)
 	Update(context.Context, *UpdateRequest) (*emptypb.Empty, error)
-	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
-	List(context.Context, *ListRequest) (*ListResponse, error)
+	SoftDelete(context.Context, *SoftDeleteRequest) (*emptypb.Empty, error)
+	BatchDelete(context.Context, *BatchDeleteRequest) (*emptypb.Empty, error)
+	Restore(context.Context, *RestoreRequest) (*emptypb.Empty, error)
 	ToggleCompletion(context.Context, *ToggleCompletionRequest) (*emptypb.Empty, error)
+	List(context.Context, *ListRequest) (*ListResponse, error)
 	mustEmbedUnimplementedTaskServiceServer()
 }
 
@@ -121,14 +147,20 @@ func (UnimplementedTaskServiceServer) Create(context.Context, *CreateRequest) (*
 func (UnimplementedTaskServiceServer) Update(context.Context, *UpdateRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedTaskServiceServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+func (UnimplementedTaskServiceServer) SoftDelete(context.Context, *SoftDeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SoftDelete not implemented")
 }
-func (UnimplementedTaskServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+func (UnimplementedTaskServiceServer) BatchDelete(context.Context, *BatchDeleteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchDelete not implemented")
+}
+func (UnimplementedTaskServiceServer) Restore(context.Context, *RestoreRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Restore not implemented")
 }
 func (UnimplementedTaskServiceServer) ToggleCompletion(context.Context, *ToggleCompletionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ToggleCompletion not implemented")
+}
+func (UnimplementedTaskServiceServer) List(context.Context, *ListRequest) (*ListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedTaskServiceServer) mustEmbedUnimplementedTaskServiceServer() {}
 func (UnimplementedTaskServiceServer) testEmbeddedByValue()                     {}
@@ -187,38 +219,56 @@ func _TaskService_Update_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TaskService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteRequest)
+func _TaskService_SoftDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SoftDeleteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TaskServiceServer).Delete(ctx, in)
+		return srv.(TaskServiceServer).SoftDelete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TaskService_Delete_FullMethodName,
+		FullMethod: TaskService_SoftDelete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TaskServiceServer).Delete(ctx, req.(*DeleteRequest))
+		return srv.(TaskServiceServer).SoftDelete(ctx, req.(*SoftDeleteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TaskService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRequest)
+func _TaskService_BatchDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchDeleteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TaskServiceServer).List(ctx, in)
+		return srv.(TaskServiceServer).BatchDelete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TaskService_List_FullMethodName,
+		FullMethod: TaskService_BatchDelete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TaskServiceServer).List(ctx, req.(*ListRequest))
+		return srv.(TaskServiceServer).BatchDelete(ctx, req.(*BatchDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TaskService_Restore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskServiceServer).Restore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskService_Restore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskServiceServer).Restore(ctx, req.(*RestoreRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -241,6 +291,24 @@ func _TaskService_ToggleCompletion_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TaskService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskServiceServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskService_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskServiceServer).List(ctx, req.(*ListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TaskService_ServiceDesc is the grpc.ServiceDesc for TaskService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,16 +325,24 @@ var TaskService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TaskService_Update_Handler,
 		},
 		{
-			MethodName: "Delete",
-			Handler:    _TaskService_Delete_Handler,
+			MethodName: "SoftDelete",
+			Handler:    _TaskService_SoftDelete_Handler,
 		},
 		{
-			MethodName: "List",
-			Handler:    _TaskService_List_Handler,
+			MethodName: "BatchDelete",
+			Handler:    _TaskService_BatchDelete_Handler,
+		},
+		{
+			MethodName: "Restore",
+			Handler:    _TaskService_Restore_Handler,
 		},
 		{
 			MethodName: "ToggleCompletion",
 			Handler:    _TaskService_ToggleCompletion_Handler,
+		},
+		{
+			MethodName: "List",
+			Handler:    _TaskService_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

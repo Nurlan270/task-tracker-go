@@ -56,20 +56,15 @@ func (r *TaskRepository) Update(ctx context.Context, task *models.Task) error {
 	return nil
 }
 
-func (r *TaskRepository) Delete(ctx context.Context, task *models.Task, isForce bool) error {
-	const op = "repository.postgres.task.Delete"
+func (r *TaskRepository) SoftDelete(ctx context.Context, task *models.Task) error {
+	const op = "repository.postgres.task.SoftDelete"
 
 	db := ctxlib.GetDB(ctx, r.db)
 
-	query := db.Where("id = ?", task.ID).
-		Where("user_id = ?", task.UserID)
-
-	if isForce {
-		query = query.Unscoped() //	Force delete
-	}
-
-	result := query.Delete(task)
-
+	result := db.WithContext(ctx).
+		Where("id = ?", task.ID).
+		Where("user_id = ?", task.UserID).
+		Delete(task)
 	if result.Error != nil {
 		return fmt.Errorf("%s: %w", op, result.Error)
 	}
@@ -82,33 +77,79 @@ func (r *TaskRepository) Delete(ctx context.Context, task *models.Task, isForce 
 	return nil
 }
 
+func (r *TaskRepository) Restore(ctx context.Context, task *models.Task) error {
+	const op = "repository.postgres.task.Restore"
+
+	db := ctxlib.GetDB(ctx, r.db)
+
+	result := db.WithContext(ctx).Model(&models.Task{}).Unscoped().
+		Where("id = ?", task.ID).
+		Where("user_id = ?", task.UserID).
+		Update("deleted_at", nil)
+	if result.Error != nil {
+		return fmt.Errorf("%s: %w", op, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		//	Specified task not found
+		return errs.ErrTaskNotFound
+	}
+
+	return nil
+}
+
+func (r *TaskRepository) BatchDelete(ctx context.Context, ids []uint64) error {
+	const op = "repository.postgres.task.BatchDelete"
+
+	db := ctxlib.GetDB(ctx, r.db)
+
+	var tasks []models.Task
+
+	for _, id := range ids {
+		tasks = append(tasks, models.Task{ID: id})
+	}
+
+	result := db.WithContext(ctx).Unscoped().Delete(&tasks)
+	if result.Error != nil {
+		return fmt.Errorf("%s: %w", op, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		//	Specified task(s) not found
+		return errs.ErrTaskNotFound
+	}
+
+	return nil
+}
+
 func (r *TaskRepository) List(
 	ctx context.Context,
-	userID uint,
+	userID uint64,
 	taskType models.TaskType,
 ) ([]models.Task, error) {
 	const op = "repository.postgres.task.List"
 
 	db := ctxlib.GetDB(ctx, r.db)
 
-	query := gorm.G[models.Task](db).Where("user_id = ?", userID)
+	query := db.WithContext(ctx).Where("user_id = ?", userID)
 
 	switch taskType {
 	case models.TaskTypeUncompleted:
 		//	Uncompleted tasks
-		query = query.Where("completed_at IS NULL").Where("deleted_at IS NULL")
+		query = query.Where("completed_at IS NULL")
 	case models.TaskTypeCompleted:
 		//	Completed tasks
 		query = query.Where("completed_at IS NOT NULL")
 	case models.TaskTypeDeleted:
 		//	Deleted tasks
-		query = query.Where("deleted_at IS NOT NULL")
+		query = query.Unscoped().Where("deleted_at IS NOT NULL").Order("deleted_at DESC")
 	default:
 		return nil, fmt.Errorf("%s: %w", op, fmt.Errorf("invalid task type: %d", taskType))
 	}
 
-	list, err := query.Find(ctx)
-	if err != nil {
+	var list []models.Task
+
+	if err := query.Find(&list).Error; err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -120,10 +161,11 @@ func (r *TaskRepository) ToggleCompletion(ctx context.Context, task *models.Task
 
 	db := ctxlib.GetDB(ctx, r.db)
 
-	dbTask, err := gorm.G[models.Task](db).
+	query := gorm.G[models.Task](db).
 		Where("id = ?", task.ID).
-		Where("user_id = ?", task.UserID).
-		First(ctx)
+		Where("user_id = ?", task.UserID)
+
+	dbTask, err := query.First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			//	The task not found
@@ -132,10 +174,6 @@ func (r *TaskRepository) ToggleCompletion(ctx context.Context, task *models.Task
 
 		return fmt.Errorf("%s: %w", op, err)
 	}
-
-	query := gorm.G[models.Task](db).
-		Where("id = ?", task.ID).
-		Where("user_id = ?", task.UserID)
 
 	if dbTask.CompletedAt == nil {
 		//	The task is not completed yet; set completed_at to current time

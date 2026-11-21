@@ -133,9 +133,9 @@ func (h *TaskHandler) ToggleCompletion(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *TaskHandler) Delete(c *gin.Context) {
-	body := validateRequest[request.DeleteTask](c, h.validator,
-		func(r *request.DeleteTask) error {
+func (h *TaskHandler) SoftDelete(c *gin.Context) {
+	body := validateRequest[request.SoftDeleteTask](c, h.validator,
+		func(r *request.SoftDeleteTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
 			r.UserID = uint64(user.ID)
@@ -155,10 +155,55 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 	}
 
 	//	Delete task
-	if err := h.taskSvc.Delete(c.Request.Context(), body); err != nil {
+	if err := h.taskSvc.SoftDelete(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *TaskHandler) BatchDelete(c *gin.Context) {
+	body := validateRequest[request.BatchDeleteTask](c, h.validator, nil)
+	if body == nil {
+		return
+	}
+
+	//	Delete task
+	if err := h.taskSvc.BatchDelete(c.Request.Context(), body); err != nil {
+		httplib.AbortWithErr(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *TaskHandler) Restore(c *gin.Context) {
+	body := validateRequest[request.RestoreTask](c, h.validator,
+		func(r *request.RestoreTask) error {
+			//	Get user id from ctx
+			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
+			r.UserID = uint64(user.ID)
+
+			//	Get task id from url param
+			taskIdStr, err := strconv.ParseUint(c.Param("id"), 10, 64)
+			if err != nil {
+				return errs.ErrBadRequest
+			}
+
+			r.TaskID = taskIdStr
+
+			return nil
+		})
+	if body == nil {
+		return
+	}
+
+	//	Restore task
+	if err := h.taskSvc.Restore(c.Request.Context(), body); err != nil {
+		httplib.AbortWithErr(c, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }

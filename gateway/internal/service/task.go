@@ -67,8 +67,10 @@ func (s *TaskService) List(ctx context.Context, req *request.ListTask) (response
 		}
 
 		tasks = append(tasks, &entity.Task{
+			ID:          task.Id,
 			Title:       task.Title,
 			Description: task.Description,
+			CreatedAt:   task.CreatedAt.AsTime(),
 			CompletedAt: completedAt,
 		})
 	}
@@ -88,11 +90,33 @@ func (s *TaskService) ToggleCompletion(ctx context.Context, req *request.ToggleC
 	return nil
 }
 
-func (s *TaskService) Delete(ctx context.Context, req *request.DeleteTask) error {
-	_, err := s.client.Delete(ctx, &taskV1.DeleteRequest{
-		TaskId:  req.TaskID,
-		UserId:  req.UserID,
-		IsForce: req.IsForce,
+func (s *TaskService) SoftDelete(ctx context.Context, req *request.SoftDeleteTask) error {
+	_, err := s.client.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+		TaskId: req.TaskID,
+		UserId: req.UserID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TaskService) BatchDelete(ctx context.Context, req *request.BatchDeleteTask) error {
+	_, err := s.client.BatchDelete(ctx, &taskV1.BatchDeleteRequest{
+		Ids: req.IDs,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TaskService) Restore(ctx context.Context, req *request.RestoreTask) error {
+	_, err := s.client.Restore(ctx, &taskV1.RestoreRequest{
+		TaskId: req.TaskID,
+		UserId: req.UserID,
 	})
 	if err != nil {
 		return err
