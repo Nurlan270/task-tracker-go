@@ -23,6 +23,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type TaskType int32
+
+const (
+	TaskType_UNKNOWN     TaskType = 0
+	TaskType_UNCOMPLETED TaskType = 1
+	TaskType_COMPLETED   TaskType = 2
+	TaskType_DELETED     TaskType = 3
+)
+
+// Enum value maps for TaskType.
+var (
+	TaskType_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "UNCOMPLETED",
+		2: "COMPLETED",
+		3: "DELETED",
+	}
+	TaskType_value = map[string]int32{
+		"UNKNOWN":     0,
+		"UNCOMPLETED": 1,
+		"COMPLETED":   2,
+		"DELETED":     3,
+	}
+)
+
+func (x TaskType) Enum() *TaskType {
+	p := new(TaskType)
+	*p = x
+	return p
+}
+
+func (x TaskType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskType) Descriptor() protoreflect.EnumDescriptor {
+	return file_task_v1_task_proto_enumTypes[0].Descriptor()
+}
+
+func (TaskType) Type() protoreflect.EnumType {
+	return &file_task_v1_task_proto_enumTypes[0]
+}
+
+func (x TaskType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskType.Descriptor instead.
+func (TaskType) EnumDescriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{0}
+}
+
 // Create new task
 type CreateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -229,7 +281,9 @@ func (x *DeleteRequest) GetIsForce() bool {
 type ListRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Task's owner id
-	UserId        uint64 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserId uint64 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Task's type
+	Type          TaskType `protobuf:"varint,2,opt,name=type,proto3,enum=task.v1.TaskType" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -269,6 +323,13 @@ func (x *ListRequest) GetUserId() uint64 {
 		return x.UserId
 	}
 	return 0
+}
+
+func (x *ListRequest) GetType() TaskType {
+	if x != nil {
+		return x.Type
+	}
+	return TaskType_UNKNOWN
 }
 
 // List of user's tasks
@@ -453,9 +514,10 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\rDeleteRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x04R\x06taskId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x04R\x06userId\x12\x19\n" +
-	"\bis_force\x18\x03 \x01(\bR\aisForce\"&\n" +
+	"\bis_force\x18\x03 \x01(\bR\aisForce\"M\n" +
 	"\vListRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x04R\x06userId\"1\n" +
+	"\auser_id\x18\x01 \x01(\x04R\x06userId\x12%\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeR\x04type\"1\n" +
 	"\fListResponse\x12!\n" +
 	"\x04task\x18\x01 \x03(\v2\r.task.v1.TaskR\x04task\"}\n" +
 	"\x04Task\x12\x14\n" +
@@ -464,7 +526,12 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\fcompleted_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"K\n" +
 	"\x17ToggleCompletionRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x04R\x06taskId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x04R\x06userId2\xbe\x02\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId*D\n" +
+	"\bTaskType\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x0f\n" +
+	"\vUNCOMPLETED\x10\x01\x12\r\n" +
+	"\tCOMPLETED\x10\x02\x12\v\n" +
+	"\aDELETED\x10\x032\xbe\x02\n" +
 	"\vTaskService\x128\n" +
 	"\x06Create\x12\x16.task.v1.CreateRequest\x1a\x16.google.protobuf.Empty\x128\n" +
 	"\x06Update\x12\x16.task.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\x128\n" +
@@ -484,36 +551,39 @@ func file_task_v1_task_proto_rawDescGZIP() []byte {
 	return file_task_v1_task_proto_rawDescData
 }
 
+var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_task_v1_task_proto_goTypes = []any{
-	(*CreateRequest)(nil),           // 0: task.v1.CreateRequest
-	(*UpdateRequest)(nil),           // 1: task.v1.UpdateRequest
-	(*DeleteRequest)(nil),           // 2: task.v1.DeleteRequest
-	(*ListRequest)(nil),             // 3: task.v1.ListRequest
-	(*ListResponse)(nil),            // 4: task.v1.ListResponse
-	(*Task)(nil),                    // 5: task.v1.Task
-	(*ToggleCompletionRequest)(nil), // 6: task.v1.ToggleCompletionRequest
-	(*timestamppb.Timestamp)(nil),   // 7: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),           // 8: google.protobuf.Empty
+	(TaskType)(0),                   // 0: task.v1.TaskType
+	(*CreateRequest)(nil),           // 1: task.v1.CreateRequest
+	(*UpdateRequest)(nil),           // 2: task.v1.UpdateRequest
+	(*DeleteRequest)(nil),           // 3: task.v1.DeleteRequest
+	(*ListRequest)(nil),             // 4: task.v1.ListRequest
+	(*ListResponse)(nil),            // 5: task.v1.ListResponse
+	(*Task)(nil),                    // 6: task.v1.Task
+	(*ToggleCompletionRequest)(nil), // 7: task.v1.ToggleCompletionRequest
+	(*timestamppb.Timestamp)(nil),   // 8: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),           // 9: google.protobuf.Empty
 }
 var file_task_v1_task_proto_depIdxs = []int32{
-	5, // 0: task.v1.ListResponse.task:type_name -> task.v1.Task
-	7, // 1: task.v1.Task.completed_at:type_name -> google.protobuf.Timestamp
-	0, // 2: task.v1.TaskService.Create:input_type -> task.v1.CreateRequest
-	1, // 3: task.v1.TaskService.Update:input_type -> task.v1.UpdateRequest
-	2, // 4: task.v1.TaskService.Delete:input_type -> task.v1.DeleteRequest
-	3, // 5: task.v1.TaskService.List:input_type -> task.v1.ListRequest
-	6, // 6: task.v1.TaskService.ToggleCompletion:input_type -> task.v1.ToggleCompletionRequest
-	8, // 7: task.v1.TaskService.Create:output_type -> google.protobuf.Empty
-	8, // 8: task.v1.TaskService.Update:output_type -> google.protobuf.Empty
-	8, // 9: task.v1.TaskService.Delete:output_type -> google.protobuf.Empty
-	4, // 10: task.v1.TaskService.List:output_type -> task.v1.ListResponse
-	8, // 11: task.v1.TaskService.ToggleCompletion:output_type -> google.protobuf.Empty
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: task.v1.ListRequest.type:type_name -> task.v1.TaskType
+	6, // 1: task.v1.ListResponse.task:type_name -> task.v1.Task
+	8, // 2: task.v1.Task.completed_at:type_name -> google.protobuf.Timestamp
+	1, // 3: task.v1.TaskService.Create:input_type -> task.v1.CreateRequest
+	2, // 4: task.v1.TaskService.Update:input_type -> task.v1.UpdateRequest
+	3, // 5: task.v1.TaskService.Delete:input_type -> task.v1.DeleteRequest
+	4, // 6: task.v1.TaskService.List:input_type -> task.v1.ListRequest
+	7, // 7: task.v1.TaskService.ToggleCompletion:input_type -> task.v1.ToggleCompletionRequest
+	9, // 8: task.v1.TaskService.Create:output_type -> google.protobuf.Empty
+	9, // 9: task.v1.TaskService.Update:output_type -> google.protobuf.Empty
+	9, // 10: task.v1.TaskService.Delete:output_type -> google.protobuf.Empty
+	5, // 11: task.v1.TaskService.List:output_type -> task.v1.ListResponse
+	9, // 12: task.v1.TaskService.ToggleCompletion:output_type -> google.protobuf.Empty
+	8, // [8:13] is the sub-list for method output_type
+	3, // [3:8] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }
@@ -526,13 +596,14 @@ func file_task_v1_task_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_v1_task_proto_rawDesc), len(file_task_v1_task_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_task_v1_task_proto_goTypes,
 		DependencyIndexes: file_task_v1_task_proto_depIdxs,
+		EnumInfos:         file_task_v1_task_proto_enumTypes,
 		MessageInfos:      file_task_v1_task_proto_msgTypes,
 	}.Build()
 	File_task_v1_task_proto = out.File

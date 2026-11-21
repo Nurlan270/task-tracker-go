@@ -49,6 +49,7 @@ func (s *TaskService) Update(ctx context.Context, req *request.UpdateTask) error
 func (s *TaskService) List(ctx context.Context, req *request.ListTask) (response.ListTask, error) {
 	list, err := s.client.List(ctx, &taskV1.ListRequest{
 		UserId: req.UserID,
+		Type:   req.Type.ToProto(),
 	})
 	if err != nil {
 		return response.ListTask{}, err

@@ -15,6 +15,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/router"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
+	cv "github.com/Nurlan270/task-tracker-go/gateway/internal/validator"
 
 	taskV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1"
 	userV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/user/v1"
@@ -141,7 +142,12 @@ func (c *diContainer) TaskGRPCClient() taskV1.TaskServiceClient {
 
 func (c *diContainer) Validator() *validator.Validate {
 	if c.validator == nil {
-		c.validator = validator.New(gpv.WithRequiredStructEnabled())
+		v := validator.New(gpv.WithRequiredStructEnabled())
+
+		v.RegisterCustomRules(cv.TaskTypeCustomRule())
+		v.RegisterCustomMessages(cv.Messages)
+
+		c.validator = v
 	}
 
 	return c.validator

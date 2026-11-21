@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -28,32 +27,14 @@ func NewAuthHandler(validator *validator.Validate, authSvc *service.AuthService)
 	}
 }
 
-//nolint:dupl
 func (h *AuthHandler) Register(c *gin.Context) {
-	var body request.Register
-
-	//	Bind request body
-	if err := c.ShouldBindJSON(&body); err != nil {
-		httplib.AbortWithErr(c, errs.ErrBadRequest)
-		return
-	}
-
-	//	Validate request body
-	if err := h.validator.Struct(&body); err != nil {
-		var validationErr *validator.ErrValidation
-
-		if errors.As(err, &validationErr) {
-			httplib.AbortWithErr(c, errors.Join(errs.ErrBadRequest, validationErr))
-			return
-		}
-
-		httplib.AbortWithErr(c, errors.Join(errs.ErrInternalServer, err))
-
+	body := validateRequest[request.Register](c, h.validator, nil)
+	if body == nil {
 		return
 	}
 
 	//	Register
-	resp, err := h.authSvc.Register(c.Request.Context(), &body)
+	resp, err := h.authSvc.Register(c.Request.Context(), body)
 	if err != nil {
 		httplib.AbortWithErr(c, err)
 		return
@@ -68,34 +49,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
-//nolint:dupl
 func (h *AuthHandler) Login(c *gin.Context) {
-	var body request.Login
-
-	//fixme: move duplicating validation code to separate function
-
-	//	Bind request body
-	if err := c.ShouldBindJSON(&body); err != nil {
-		httplib.AbortWithErr(c, errs.ErrBadRequest)
-		return
-	}
-
-	//	Validate request body
-	if err := h.validator.Struct(&body); err != nil {
-		var validationErr *validator.ErrValidation
-
-		if errors.As(err, &validationErr) {
-			httplib.AbortWithErr(c, errors.Join(errs.ErrBadRequest, validationErr))
-			return
-		}
-
-		httplib.AbortWithErr(c, errors.Join(errs.ErrInternalServer, err))
-
+	body := validateRequest[request.Login](c, h.validator, nil)
+	if body == nil {
 		return
 	}
 
 	//	Login
-	resp, err := h.authSvc.Login(c.Request.Context(), &body)
+	resp, err := h.authSvc.Login(c.Request.Context(), body)
 	if err != nil {
 		httplib.AbortWithErr(c, err)
 		return
@@ -111,21 +72,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
-	//	Fetch refresh token from cookie
-	token, err := c.Cookie(httplib.RefreshCookieName)
-	if err != nil || strings.TrimSpace(token) == "" {
-		//	Token does not exist or empty
-		httplib.AbortWithErr(c, errs.ErrUnauthorized)
+	body := validateRequest[request.Logout](c, h.validator, func(r *request.Logout) error {
+		//	Fetch refresh token from cookie
+		token, err := c.Cookie(httplib.RefreshCookieName)
+		if err != nil || strings.TrimSpace(token) == "" {
+			return errs.ErrUnauthorized
+		}
+
+		r.RefreshToken = token
+
+		return nil
+	})
+	if body == nil {
 		return
 	}
 
-	body := request.Logout{
-		RefreshToken: token,
-	}
-
 	//	Logout
-	err = h.authSvc.Logout(c.Request.Context(), &body)
-	if err != nil {
+	if err := h.authSvc.Logout(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return
 	}
@@ -137,20 +100,24 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	//	Fetch refresh token from cookie
-	token, err := c.Cookie(httplib.RefreshCookieName)
-	if err != nil || strings.TrimSpace(token) == "" {
-		//	Token does not exist or empty
-		httplib.AbortWithErr(c, errs.ErrUnauthorized)
+	body := validateRequest[request.Refresh](c, h.validator, func(r *request.Refresh) error {
+		//	Fetch refresh token from cookie
+		token, err := c.Cookie(httplib.RefreshCookieName)
+		if err != nil || strings.TrimSpace(token) == "" {
+			//	Token does not exist or empty
+			return errs.ErrUnauthorized
+		}
+
+		r.RefreshToken = token
+
+		return nil
+	})
+	if body == nil {
 		return
 	}
 
-	body := request.Refresh{
-		RefreshToken: token,
-	}
-
 	//	Refresh
-	resp, err := h.authSvc.Refresh(c.Request.Context(), &body)
+	resp, err := h.authSvc.Refresh(c.Request.Context(), body)
 	if err != nil {
 		httplib.AbortWithErr(c, err)
 		return

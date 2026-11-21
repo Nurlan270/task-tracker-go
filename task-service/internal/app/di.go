@@ -15,6 +15,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/repository"
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/repository/postgres"
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/service"
+	cv "github.com/Nurlan270/task-tracker-go/task-service/internal/validator"
 
 	gpv "github.com/go-playground/validator/v10"
 )
@@ -57,9 +58,12 @@ func (c *diContainer) DB() *gorm.DB {
 
 func (c *diContainer) Validator() *validator.Validate {
 	if c.validator == nil {
-		valid := validator.New(gpv.WithRequiredStructEnabled())
+		v := validator.New(gpv.WithRequiredStructEnabled())
 
-		c.validator = valid
+		v.RegisterCustomRules(cv.TaskTypeCustomRule())
+		v.RegisterCustomMessages(cv.Messages)
+
+		c.validator = v
 	}
 
 	return c.validator

@@ -3,9 +3,13 @@ package response
 import (
 	"errors"
 
+	"github.com/Nurlan270/task-tracker-go/common/logger"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/Nurlan270/task-tracker-go/task-service/internal/grpc/message"
 
 	errdet "google.golang.org/genproto/googleapis/rpc/errdetails"
 )
@@ -32,7 +36,10 @@ func ToGRPCValidationErr(err error) error {
 		FieldViolations: violations,
 	})
 	if detailErr != nil {
-		return status.Error(codes.Internal, "failed to encode validation errors")
+		logger.Get().SetOp("grpc.dto.response.utils.ToGRPCValidationErr").
+			Error("failed to encode validation errors", zap.Error(detailErr))
+
+		return status.Error(codes.Internal, message.ErrInternal)
 	}
 
 	return st.Err()

@@ -82,14 +82,32 @@ func (r *TaskRepository) Delete(ctx context.Context, task *models.Task, isForce 
 	return nil
 }
 
-func (r *TaskRepository) List(ctx context.Context, userID uint) ([]models.Task, error) {
+func (r *TaskRepository) List(
+	ctx context.Context,
+	userID uint,
+	taskType models.TaskType,
+) ([]models.Task, error) {
 	const op = "repository.postgres.task.List"
 
 	db := ctxlib.GetDB(ctx, r.db)
 
-	list, err := gorm.G[models.Task](db).
-		Where("user_id = ?", userID).
-		Find(ctx)
+	query := gorm.G[models.Task](db).Where("user_id = ?", userID)
+
+	switch taskType {
+	case models.TaskTypeUncompleted:
+		//	Uncompleted tasks
+		query = query.Where("completed_at IS NULL").Where("deleted_at IS NULL")
+	case models.TaskTypeCompleted:
+		//	Completed tasks
+		query = query.Where("completed_at IS NOT NULL")
+	case models.TaskTypeDeleted:
+		//	Deleted tasks
+		query = query.Where("deleted_at IS NOT NULL")
+	default:
+		return nil, fmt.Errorf("%s: %w", op, fmt.Errorf("invalid task type: %d", taskType))
+	}
+
+	list, err := query.Find(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

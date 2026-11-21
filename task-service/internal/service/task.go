@@ -164,6 +164,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 
 	body := &request.ListTask{
 		UserID: uint(r.GetUserId()),
+		Type:   models.TaskType(r.GetType()),
 	}
 
 	//	Validate request body
@@ -180,7 +181,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 	}
 
 	//	Get tasks list
-	list, err := s.taskRepo.List(ctx, body.UserID)
+	list, err := s.taskRepo.List(ctx, body.UserID, body.Type)
 	if err != nil {
 		log.Error("failed to get list of tasks", zap.Error(err))
 

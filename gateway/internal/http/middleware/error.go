@@ -21,9 +21,11 @@ func ErrorHandler() gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 		if ctx != nil && ctx.Err() != nil {
-			logger.Get().
-				Error("Request context has error. Nothing will be written to response",
-					zap.Error(ctx.Err()))
+			//	If context has an error - don't write anything into response
+			logger.Get().Warn(
+				"Request context has an error. Nothing will be written to response",
+				zap.Error(ctx.Err()),
+			)
 
 			return
 		}

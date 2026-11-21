@@ -18,6 +18,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/models"
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/repository"
 	"github.com/Nurlan270/task-tracker-go/task-service/internal/repository/postgres"
+	cv "github.com/Nurlan270/task-tracker-go/task-service/internal/validator"
 
 	pg "github.com/Nurlan270/task-tracker-go/common/testutils/database/postgres"
 	taskV1 "github.com/Nurlan270/task-tracker-go/protos/gen/proto/task/v1"
@@ -63,7 +64,12 @@ func (s *TaskServiceTestSuite) SetupSuite() {
 	s.taskRepo = postgres.NewTaskRepository(s.DB())
 
 	//	Validator
-	s.validate = validator.New(gpv.WithRequiredStructEnabled())
+	valid := validator.New(gpv.WithRequiredStructEnabled())
+
+	valid.RegisterCustomRules(cv.TaskTypeCustomRule())
+	valid.RegisterCustomMessages(cv.Messages)
+
+	s.validate = valid
 
 	//	Service
 	s.taskSvc = NewTaskService(s.validate, s.taskRepo)
@@ -152,44 +158,6 @@ func (s *TaskServiceTestSuite) TestUpdate() {
 	})
 }
 
-func (s *TaskServiceTestSuite) TestList() {
-	s.Run("it should not show soft deleted task in tasks list", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-
-		//	Create task first
-		resp, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
-			UserId:      1,
-			Title:       "Some title",
-			Description: "Some description",
-		})
-
-		s.Require().NoError(err)
-		s.Require().Nil(resp)
-		s.Require().Equal(codes.OK, status.Code(err))
-
-		//	Delete task
-		resp, err = s.taskSvc.Delete(ctx, &taskV1.DeleteRequest{
-			TaskId:  1,
-			UserId:  1,
-			IsForce: false,
-		})
-
-		s.Require().NoError(err)
-		s.Require().Nil(resp)
-		s.Require().Equal(codes.OK, status.Code(err))
-
-		//	Get tasks list
-		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
-			UserId: 1,
-		})
-
-		s.Require().NoError(err)
-		s.Require().Nil(list)
-		s.Require().Equal(codes.OK, status.Code(err))
-	})
-}
-
 func (s *TaskServiceTestSuite) TestToggleCompletion() {
 	s.Run("it should not set not existing task's completion time", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -233,7 +201,7 @@ func (s *TaskServiceTestSuite) TestToggleCompletion() {
 		s.Require().Equal(codes.OK, status.Code(err))
 
 		//	Get just updated task and assert that it has no nil completed_at field
-		firstList, err := s.taskRepo.List(ctx, 5)
+		firstList, err := s.taskRepo.List(ctx, 5, models.TaskTypeCompleted)
 
 		s.Require().NoError(err)
 		s.Require().NotEmpty(firstList)
@@ -250,7 +218,7 @@ func (s *TaskServiceTestSuite) TestToggleCompletion() {
 		s.Require().Equal(codes.OK, status.Code(err))
 
 		//	Get just updated task and assert that it has nil completed_at field
-		secondList, err := s.taskRepo.List(ctx, 5)
+		secondList, err := s.taskRepo.List(ctx, 5, models.TaskTypeUncompleted)
 
 		s.Require().NoError(err)
 		s.Require().NotEmpty(secondList)

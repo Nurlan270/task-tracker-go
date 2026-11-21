@@ -55,10 +55,20 @@ message DeleteRequest {
   bool is_force = 3;
 }
 
+enum TaskType {
+  UNKNOWN = 0;
+  UNCOMPLETED = 1;
+  COMPLETED = 2;
+  DELETED = 3;
+}
+
 //  Get list of all user's tasks
 message ListRequest {
   //  Task's owner id
   uint64 user_id = 1;
+
+  //  Task's type
+  TaskType type = 2;
 }
 
 //  List of user's tasks

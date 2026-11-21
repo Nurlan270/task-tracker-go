@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -162,43 +161,4 @@ func (h *TaskHandler) Delete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// validateRequest binds passed request, and fills it with data from request.
-// Then it runs the configure function with request passed into it. After that,
-// it will validate all data within request and return validated request if validation
-// is successful, otherwise it will return nil. It will also return nil if configure returned error.
-func validateRequest[T any](c *gin.Context, v *validator.Validate, configure func(*T) error) *T {
-	var req T
-
-	//	Bind request body
-	if err := c.ShouldBindJSON(&req); err != nil {
-		httplib.AbortWithErr(c, errs.ErrBadRequest)
-		return nil
-	}
-
-	//	Set custom fields if needed before validation
-	if configure != nil {
-		if err := configure(&req); err != nil {
-			httplib.AbortWithErr(c, err)
-			return nil
-		}
-	}
-
-	//	Validate request body
-	if err := v.Struct(&req); err != nil {
-		var validationErr *validator.ErrValidation
-
-		if errors.As(err, &validationErr) {
-			//fixme: handle ErrValidation in error handler middleware without specifying ErrBadRequest here
-			httplib.AbortWithErr(c, errors.Join(errs.ErrBadRequest, validationErr))
-			return nil
-		}
-
-		httplib.AbortWithErr(c, errors.Join(errs.ErrInternalServer, err))
-
-		return nil
-	}
-
-	return &req
 }

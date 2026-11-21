@@ -18,3 +18,11 @@ type Task struct {
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
+
+type TaskType int32
+
+const (
+	TaskTypeUncompleted TaskType = iota + 1
+	TaskTypeCompleted
+	TaskTypeDeleted
+)
