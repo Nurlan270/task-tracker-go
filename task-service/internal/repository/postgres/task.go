@@ -98,7 +98,7 @@ func (r *TaskRepository) Restore(ctx context.Context, task *models.Task) error {
 	return nil
 }
 
-func (r *TaskRepository) BatchDelete(ctx context.Context, ids []uint64) error {
+func (r *TaskRepository) BatchDelete(ctx context.Context, userID uint64, ids []uint64) error {
 	const op = "repository.postgres.task.BatchDelete"
 
 	db := ctxlib.GetDB(ctx, r.db)
@@ -109,7 +109,7 @@ func (r *TaskRepository) BatchDelete(ctx context.Context, ids []uint64) error {
 		tasks = append(tasks, models.Task{ID: id})
 	}
 
-	result := db.WithContext(ctx).Unscoped().Delete(&tasks)
+	result := db.WithContext(ctx).Unscoped().Where("user_id = ?", userID).Delete(&tasks)
 	if result.Error != nil {
 		return fmt.Errorf("%s: %w", op, result.Error)
 	}

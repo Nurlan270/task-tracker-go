@@ -163,7 +163,8 @@ func (s *TaskService) BatchDelete(ctx context.Context, r *taskV1.BatchDeleteRequ
 	log := logger.Get().SetOp("service.task.BatchDelete")
 
 	body := &request.BatchDeleteTask{
-		IDs: r.GetIds(),
+		IDs:    r.GetIds(),
+		UserID: r.GetUserId(),
 	}
 
 	//	Validate request body
@@ -180,7 +181,7 @@ func (s *TaskService) BatchDelete(ctx context.Context, r *taskV1.BatchDeleteRequ
 	}
 
 	//	Batch delete tasks by ids
-	if err := s.taskRepo.BatchDelete(ctx, body.IDs); err != nil {
+	if err := s.taskRepo.BatchDelete(ctx, body.UserID, body.IDs); err != nil {
 		if errors.Is(err, errs.ErrTaskNotFound) {
 			return nil, status.Error(codes.NotFound, message.ErrTaskNotFound)
 		}

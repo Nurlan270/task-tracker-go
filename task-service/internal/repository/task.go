@@ -11,7 +11,7 @@ type TaskRepository interface {
 	Update(ctx context.Context, task *models.Task) error
 	SoftDelete(ctx context.Context, task *models.Task) error
 	Restore(ctx context.Context, task *models.Task) error
-	BatchDelete(ctx context.Context, ids []uint64) error
+	BatchDelete(ctx context.Context, userID uint64, ids []uint64) error
 	List(ctx context.Context, userID uint64, taskType models.TaskType) ([]models.Task, error)
 	ToggleCompletion(ctx context.Context, task *models.Task) error
 }

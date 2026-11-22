@@ -92,8 +92,8 @@ func (r *Router) registerTaskV1Routes(v1 *gin.RouterGroup) {
 	task.GET("/", r.taskH.List)
 	task.POST("/", r.taskH.Create)
 	task.PATCH("/:id", r.taskH.Update)
-	task.DELETE("/", r.taskH.BatchDelete)
-	task.DELETE("/:id", r.taskH.SoftDelete)
-	task.PATCH("/:id/restore", r.taskH.Restore)
+	task.DELETE("/", r.taskH.DeletePermanently)
+	task.DELETE("/:id", r.taskH.MoveToTrash)
+	task.PATCH("/:id/restore", r.taskH.RestoreFromTrash)
 	task.PATCH("/:id/toggle-completion", r.taskH.ToggleCompletion)
 }

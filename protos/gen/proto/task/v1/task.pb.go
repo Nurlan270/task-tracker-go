@@ -326,7 +326,9 @@ func (x *RestoreRequest) GetUserId() uint64 {
 type BatchDeleteRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Tasks' ids
-	Ids           []uint64 `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	Ids []uint64 `protobuf:"varint,1,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	// Tasks' owner id
+	UserId        uint64 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -366,6 +368,13 @@ func (x *BatchDeleteRequest) GetIds() []uint64 {
 		return x.Ids
 	}
 	return nil
+}
+
+func (x *BatchDeleteRequest) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 // Get list of all user's tasks
@@ -625,9 +634,10 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\x04R\x06userId\"B\n" +
 	"\x0eRestoreRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x04R\x06taskId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x04R\x06userId\"&\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId\"?\n" +
 	"\x12BatchDeleteRequest\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\x04R\x03ids\"M\n" +
+	"\x03ids\x18\x01 \x03(\x04R\x03ids\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId\"M\n" +
 	"\vListRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x04R\x06userId\x12%\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeR\x04type\"\xc8\x01\n" +

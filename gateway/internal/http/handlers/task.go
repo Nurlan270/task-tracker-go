@@ -32,7 +32,7 @@ func (h *TaskHandler) Create(c *gin.Context) {
 		func(r *request.CreateTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			return nil
 		})
@@ -54,15 +54,15 @@ func (h *TaskHandler) Update(c *gin.Context) {
 		func(r *request.UpdateTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			//	Get task id from url param
-			taskIdStr, err := strconv.ParseUint(c.Param("id"), 10, 64)
+			taskId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 			if err != nil {
 				return errs.ErrBadRequest
 			}
 
-			r.TaskID = taskIdStr
+			r.TaskID = taskId
 
 			return nil
 		})
@@ -84,7 +84,7 @@ func (h *TaskHandler) List(c *gin.Context) {
 		func(r *request.ListTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			return nil
 		})
@@ -107,15 +107,15 @@ func (h *TaskHandler) ToggleCompletion(c *gin.Context) {
 		func(r *request.ToggleCompletion) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			//	Get task id from url param
-			taskIdStr, err := strconv.ParseUint(c.Param("id"), 10, 64)
+			taskId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 			if err != nil {
 				return errs.ErrBadRequest
 			}
 
-			r.TaskID = taskIdStr
+			r.TaskID = taskId
 
 			return nil
 		},
@@ -133,20 +133,20 @@ func (h *TaskHandler) ToggleCompletion(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *TaskHandler) SoftDelete(c *gin.Context) {
+func (h *TaskHandler) MoveToTrash(c *gin.Context) {
 	body := validateRequest[request.SoftDeleteTask](c, h.validator,
 		func(r *request.SoftDeleteTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			//	Get task id from url param
-			taskIdStr, err := strconv.ParseUint(c.Param("id"), 10, 64)
+			taskId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 			if err != nil {
 				return errs.ErrBadRequest
 			}
 
-			r.TaskID = taskIdStr
+			r.TaskID = taskId
 
 			return nil
 		})
@@ -154,7 +154,7 @@ func (h *TaskHandler) SoftDelete(c *gin.Context) {
 		return
 	}
 
-	//	Delete task
+	//	Soft delete task (move to trash)
 	if err := h.taskSvc.SoftDelete(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return
@@ -163,13 +163,20 @@ func (h *TaskHandler) SoftDelete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (h *TaskHandler) BatchDelete(c *gin.Context) {
-	body := validateRequest[request.BatchDeleteTask](c, h.validator, nil)
+func (h *TaskHandler) DeletePermanently(c *gin.Context) {
+	body := validateRequest[request.BatchDeleteTask](c, h.validator,
+		func(r *request.BatchDeleteTask) error {
+			//	Get user id from ctx
+			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
+			r.UserID = user.ID
+
+			return nil
+		})
 	if body == nil {
 		return
 	}
 
-	//	Delete task
+	//	Batch delete tasks (delete permanently)
 	if err := h.taskSvc.BatchDelete(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return
@@ -178,20 +185,20 @@ func (h *TaskHandler) BatchDelete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func (h *TaskHandler) Restore(c *gin.Context) {
+func (h *TaskHandler) RestoreFromTrash(c *gin.Context) {
 	body := validateRequest[request.RestoreTask](c, h.validator,
 		func(r *request.RestoreTask) error {
 			//	Get user id from ctx
 			user := c.MustGet(ctxlib.UserCtxKey).(*entity.User)
-			r.UserID = uint64(user.ID)
+			r.UserID = user.ID
 
 			//	Get task id from url param
-			taskIdStr, err := strconv.ParseUint(c.Param("id"), 10, 64)
+			taskId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 			if err != nil {
 				return errs.ErrBadRequest
 			}
 
-			r.TaskID = taskIdStr
+			r.TaskID = taskId
 
 			return nil
 		})
@@ -199,7 +206,7 @@ func (h *TaskHandler) Restore(c *gin.Context) {
 		return
 	}
 
-	//	Restore task
+	//	Restore task from trash
 	if err := h.taskSvc.Restore(c.Request.Context(), body); err != nil {
 		httplib.AbortWithErr(c, err)
 		return

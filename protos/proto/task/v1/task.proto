@@ -66,6 +66,9 @@ message RestoreRequest {
 message BatchDeleteRequest {
   //  Tasks' ids
   repeated uint64 ids = 1;
+
+  //  Tasks' owner id
+  uint64 user_id = 2;
 }
 
 enum TaskType {

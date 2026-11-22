@@ -104,7 +104,8 @@ func (s *TaskService) SoftDelete(ctx context.Context, req *request.SoftDeleteTas
 
 func (s *TaskService) BatchDelete(ctx context.Context, req *request.BatchDeleteTask) error {
 	_, err := s.client.BatchDelete(ctx, &taskV1.BatchDeleteRequest{
-		Ids: req.IDs,
+		Ids:    req.IDs,
+		UserId: req.UserID,
 	})
 	if err != nil {
 		return err
