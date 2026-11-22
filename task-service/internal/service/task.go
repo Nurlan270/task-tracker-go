@@ -288,7 +288,7 @@ func (s *TaskService) List(ctx context.Context, r *taskV1.ListRequest) (*taskV1.
 		})
 	}
 
-	return &taskV1.ListResponse{Task: tasks}, nil
+	return &taskV1.ListResponse{Tasks: tasks}, nil
 }
 
 //nolint:dupl

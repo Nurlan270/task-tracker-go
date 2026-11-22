@@ -22,8 +22,8 @@ type SoftDeleteTask struct {
 }
 
 type BatchDeleteTask struct {
-	IDs    []uint64 `json:"ids" validate:"required"`
-	UserID uint64   `json:"user_id"  validate:"required"`
+	IDs    []uint64 `json:"ids"     validate:"required"`
+	UserID uint64   `json:"user_id" validate:"required"`
 }
 
 type RestoreTask struct {

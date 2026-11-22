@@ -518,7 +518,7 @@ func (x *Task) GetCompletedAt() *timestamppb.Timestamp {
 type ListResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// List of tasks
-	Task          []*Task `protobuf:"bytes,1,rep,name=task,proto3" json:"task,omitempty"`
+	Tasks         []*Task `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -553,9 +553,9 @@ func (*ListResponse) Descriptor() ([]byte, []int) {
 	return file_task_v1_task_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ListResponse) GetTask() []*Task {
+func (x *ListResponse) GetTasks() []*Task {
 	if x != nil {
-		return x.Task
+		return x.Tasks
 	}
 	return nil
 }
@@ -647,9 +647,9 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x129\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
-	"\fcompleted_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"1\n" +
-	"\fListResponse\x12!\n" +
-	"\x04task\x18\x01 \x03(\v2\r.task.v1.TaskR\x04task\"K\n" +
+	"\fcompleted_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"3\n" +
+	"\fListResponse\x12#\n" +
+	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks\"K\n" +
 	"\x17ToggleCompletionRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\x04R\x06taskId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x04R\x06userId*D\n" +
@@ -700,7 +700,7 @@ var file_task_v1_task_proto_depIdxs = []int32{
 	0,  // 0: task.v1.ListRequest.type:type_name -> task.v1.TaskType
 	10, // 1: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
 	10, // 2: task.v1.Task.completed_at:type_name -> google.protobuf.Timestamp
-	7,  // 3: task.v1.ListResponse.task:type_name -> task.v1.Task
+	7,  // 3: task.v1.ListResponse.tasks:type_name -> task.v1.Task
 	1,  // 4: task.v1.TaskService.Create:input_type -> task.v1.CreateRequest
 	2,  // 5: task.v1.TaskService.Update:input_type -> task.v1.UpdateRequest
 	3,  // 6: task.v1.TaskService.SoftDelete:input_type -> task.v1.SoftDeleteRequest

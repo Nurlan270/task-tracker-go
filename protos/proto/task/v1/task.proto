@@ -108,7 +108,7 @@ message Task {
 //  List of user's tasks
 message ListResponse {
   //  List of tasks
-  repeated Task task = 1;
+  repeated Task tasks = 1;
 }
 
 //  Toggle task's completion time

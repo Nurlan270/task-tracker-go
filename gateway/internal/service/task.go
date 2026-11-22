@@ -55,10 +55,10 @@ func (s *TaskService) List(ctx context.Context, req *request.ListTask) (response
 		return response.ListTask{}, err
 	}
 
-	tasks := make([]*entity.Task, 0, len(list.Task))
+	tasks := make([]*entity.Task, 0, len(list.Tasks))
 
 	//	Convert from gRPC
-	for _, task := range list.Task {
+	for _, task := range list.Tasks {
 		var completedAt *time.Time
 
 		if task.CompletedAt != nil {

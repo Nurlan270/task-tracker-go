@@ -120,14 +120,13 @@ func (s *TaskServiceTestSuite) TestCreate() {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer cancel()
 
-				resp, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+				_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
 					UserId:      1,
 					Title:       tt.Title,
 					Description: tt.Description,
 				})
 
 				s.Require().Error(err)
-				s.Require().Nil(resp)
 				s.Require().Equal(codes.InvalidArgument, status.Code(err))
 			})
 		}
@@ -140,7 +139,7 @@ func (s *TaskServiceTestSuite) TestUpdate() {
 		defer cancel()
 
 		//	We didn't create any task yet
-		resp, err := s.taskSvc.Update(ctx, &taskV1.UpdateRequest{
+		_, err := s.taskSvc.Update(ctx, &taskV1.UpdateRequest{
 			TaskId:      100,
 			UserId:      5,
 			Title:       "Some title",
@@ -148,9 +147,145 @@ func (s *TaskServiceTestSuite) TestUpdate() {
 		})
 
 		s.Require().Error(err)
-		s.Require().Nil(resp)
 		s.Require().Equal(codes.NotFound, status.Code(err))
 		s.Require().ErrorContains(err, message.ErrTaskNotFound)
+	})
+}
+
+func (s *TaskServiceTestSuite) TestList() {
+	s.Run("it should return list of deleted tasks", func() { //nolint:dupl
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task first
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      1,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Delete it softly (move to trash)
+		_, err = s.taskSvc.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+			UserId: 1,
+			TaskId: 1,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get the list of deleted tasks
+		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+			Type:   taskV1.TaskType_DELETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Len(list.Tasks, 1)
+		s.Require().EqualValues(1, list.Tasks[0].Id)
+	})
+
+	s.Run("it should return list of completed tasks", func() { //nolint:dupl
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task first
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      1,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Complete task
+		_, err = s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
+			UserId: 1,
+			TaskId: 1,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get the list of completed tasks
+		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+			Type:   taskV1.TaskType_COMPLETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Len(list.Tasks, 1)
+		s.Require().EqualValues(1, list.Tasks[0].Id)
+	})
+
+	s.Run("it should return list of uncompleted tasks", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task first
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      1,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get the list of uncompleted tasks
+		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+			Type:   taskV1.TaskType_UNCOMPLETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Len(list.Tasks, 1)
+		s.Require().EqualValues(1, list.Tasks[0].Id)
+	})
+
+	s.Run("it should not return list of deleted tasks in (un)/completed list", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task first
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      1,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Delete it softly (move to trash)
+		_, err = s.taskSvc.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+			UserId: 1,
+			TaskId: 1,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get the list of uncompleted tasks
+		uncompleted, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+			Type:   taskV1.TaskType_UNCOMPLETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(uncompleted)
+
+		//	Get the list of completed tasks
+		completed, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 1,
+			Type:   taskV1.TaskType_COMPLETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Nil(completed)
 	})
 }
 
@@ -176,24 +311,22 @@ func (s *TaskServiceTestSuite) TestToggleCompletion() {
 		defer cancel()
 
 		//	Create task
-		createReq, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
 			UserId:      5,
 			Title:       "Some title",
 			Description: "Some description",
 		})
 
 		s.Require().NoError(err)
-		s.Require().Nil(createReq)
 		s.Require().Equal(codes.OK, status.Code(err))
 
 		//	Toggle completion to current time
-		firstToggle, err := s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
+		_, err = s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
 			TaskId: 1,
 			UserId: 5,
 		})
 
 		s.Require().NoError(err)
-		s.Require().Nil(firstToggle)
 		s.Require().Equal(codes.OK, status.Code(err))
 
 		//	Get just updated task and assert that it has no nil completed_at field
@@ -204,13 +337,12 @@ func (s *TaskServiceTestSuite) TestToggleCompletion() {
 		s.Require().NotNil(firstList[0].CompletedAt)
 
 		//	Toggle completion to nil
-		secondToggle, err := s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
+		_, err = s.taskSvc.ToggleCompletion(ctx, &taskV1.ToggleCompletionRequest{
 			TaskId: 1,
 			UserId: 5,
 		})
 
 		s.Require().NoError(err)
-		s.Require().Nil(secondToggle)
 		s.Require().Equal(codes.OK, status.Code(err))
 
 		//	Get just updated task and assert that it has nil completed_at field
@@ -222,18 +354,131 @@ func (s *TaskServiceTestSuite) TestToggleCompletion() {
 	})
 }
 
-func (s *TaskServiceTestSuite) TestDelete() {
-	s.Run("it should not delete not existing task", func() {
+func (s *TaskServiceTestSuite) TestSoftDelete() {
+	s.Run("it should not delete task from DB", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      5,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Soft delete it
+		_, err = s.taskSvc.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		var exists models.Task
+
+		s.DB().
+			WithContext(ctx).
+			Model(&models.Task{}).
+			Unscoped().
+			Where("id = ?", 1).
+			Where("user_id = ?", 5).
+			First(&exists)
+
+		s.Require().NotEmpty(exists)
+	})
+
+	s.Run("it should return not found on not existing task", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Soft delete not existing task
+		_, err := s.taskSvc.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().Error(err)
+		s.Require().Equal(codes.NotFound, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrTaskNotFound)
+	})
+}
+
+func (s *TaskServiceTestSuite) TestBatchDelete() {
+	s.Run("it should return not found on not existing task", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 
 		//	We didn't create any task yet
-		resp, err := s.taskSvc.BatchDelete(ctx, &taskV1.BatchDeleteRequest{
-			Ids: []uint64{100},
+		_, err := s.taskSvc.BatchDelete(ctx, &taskV1.BatchDeleteRequest{
+			Ids:    []uint64{100},
+			UserId: 5,
 		})
 
 		s.Require().Error(err)
-		s.Require().Nil(resp)
+		s.Require().Equal(codes.NotFound, status.Code(err))
+		s.Require().ErrorContains(err, message.ErrTaskNotFound)
+	})
+}
+
+func (s *TaskServiceTestSuite) TestRestore() {
+	s.Run("it should remove task from trash", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	Create task
+		_, err := s.taskSvc.Create(ctx, &taskV1.CreateRequest{
+			UserId:      5,
+			Title:       "Some title",
+			Description: "Some description",
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Soft delete it
+		_, err = s.taskSvc.SoftDelete(ctx, &taskV1.SoftDeleteRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Restore it
+		_, err = s.taskSvc.Restore(ctx, &taskV1.RestoreRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+
+		//	Get a list of deleted tasks
+		list, err := s.taskSvc.List(ctx, &taskV1.ListRequest{
+			UserId: 5,
+			Type:   taskV1.TaskType_DELETED,
+		})
+
+		s.Require().NoError(err)
+		s.Require().Equal(codes.OK, status.Code(err))
+		s.Require().Nil(list)
+	})
+
+	s.Run("it should return not found on not existing task", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		//	We didn't create any task yet
+		_, err := s.taskSvc.Restore(ctx, &taskV1.RestoreRequest{
+			TaskId: 1,
+			UserId: 5,
+		})
+
+		s.Require().Error(err)
 		s.Require().Equal(codes.NotFound, status.Code(err))
 		s.Require().ErrorContains(err, message.ErrTaskNotFound)
 	})
