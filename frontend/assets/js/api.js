@@ -10,6 +10,23 @@
     try { return JSON.parse(text); } catch (_) { return {}; }
   }
 
+  function redirectToRateLimit(xhr, request) {
+    if (/^\/429\/?$/.test(window.location.pathname)) return;
+    let retryAfter = xhr.getResponseHeader ? xhr.getResponseHeader("Retry-After") : null;
+    let retrySeconds = 0;
+    if (retryAfter) {
+      const numeric = Number(retryAfter);
+      retrySeconds = Number.isFinite(numeric) && numeric >= 0
+        ? Math.ceil(numeric)
+        : Math.max(0, Math.ceil((Date.parse(retryAfter) - Date.now()) / 1000));
+    }
+    const body = xhr.responseJSON || parseBody(xhr.responseText);
+    try {
+      sessionStorage.setItem("taskTrackerRateLimit", JSON.stringify({ retrySeconds, timestamp: Date.now(), request: request || null, returnTo: window.location.pathname + window.location.search }));
+    } catch (_) {}
+    window.location.replace("/429/");
+  }
+
   function rawRequest(url, method, data) {
     const options = {
       url, method, dataType: "text", contentType: "application/json; charset=utf-8",
@@ -21,6 +38,7 @@
       d.resolve(parseBody(body), status, xhr);
     }).fail(function (xhr, status, error) {
       xhr.responseJSON = parseBody(xhr.responseText);
+      if (xhr.status === 429) redirectToRateLimit(xhr, { url: url, method: method, data: data });
       d.reject(xhr, status, error);
     });
     return d.promise();

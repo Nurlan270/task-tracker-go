@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Too Many Requests · Task Tracker</title>
+  <link rel="stylesheet" href="/assets/css/styles.css?v=14">
+  <style>
+    .rate-limit-main{flex:1;display:grid;place-items:center;padding:40px 20px}
+    .rate-limit-card{width:min(100%,540px);padding:48px 42px;text-align:center;background:#fff;border:1px solid #ececf4;border-radius:24px;box-shadow:0 18px 55px rgba(35,39,75,.09)}
+    .rate-limit-icon{width:68px;height:68px;margin:0 auto 22px;display:grid;place-items:center;border-radius:20px;background:#fff4e8;color:#d88327;font-size:32px;font-weight:800}
+    .rate-limit-card h1{margin:0;font-size:clamp(28px,5vw,38px);letter-spacing:-1.2px}
+    .rate-limit-card p{margin:13px 0;color:#858ba2;font-size:14px;line-height:1.7}
+    .rate-limit-message{color:#5c6178!important;font-weight:600}
+    .rate-limit-countdown{margin:20px 0 24px;color:#d88327;font-weight:700;font-size:14px}
+    .rate-limit-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+    #try-again:disabled{cursor:not-allowed;opacity:.55;transform:none!important;box-shadow:none!important}
+    #try-again:disabled:hover,#try-again:disabled:active{cursor:not-allowed;transform:none!important;box-shadow:none!important}
+    @media(max-width:600px){.rate-limit-card{padding:35px 23px}}
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header"><a class="brand" href="/"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19.5 6.8"/></svg></span><span>Task<span class="brand-light">Tracker</span></span></a></header>
+    <main class="rate-limit-main"><section class="rate-limit-card" role="alert"><div class="rate-limit-icon" aria-hidden="true">!</div><h1>Too many requests</h1><p>You've made too many requests in a short period of time.</p><div class="rate-limit-countdown" id="rate-limit-countdown" hidden></div><div class="rate-limit-actions"><button class="button button-secondary" type="button" id="try-again" disabled>Try again</button></div></section></main>
+    <footer class="site-footer"><span>© <span id="year"></span> Task Tracker</span><span>Project <a href="https://github.com/Nurlan270/task-tracker-go" target="_blank" rel="noopener noreferrer">Task Tracker</a></span></footer>
+  </div>
+  <script>
+    (function(){
+      document.getElementById('year').textContent = new Date().getFullYear();
+      const countdown = document.getElementById('rate-limit-countdown');
+      const tryAgain = document.getElementById('try-again');
+      let info = {};
+      try { info = JSON.parse(sessionStorage.getItem('taskTrackerRateLimit') || '{}'); } catch(e) {}
+      const retryDelay = Math.max(0, Number(info.retrySeconds || 0));
+      let retryDeadline = Number(info.timestamp || Date.now()) + retryDelay * 1000;
+      let timer = null;
+      let retrying = false;
+      function remaining(){ return Math.max(0, Math.ceil((retryDeadline - Date.now()) / 1000)); }
+      function tick(){
+        if (timer) clearTimeout(timer);
+        const seconds = remaining();
+        countdown.hidden = false;
+        if (seconds <= 0) {
+          countdown.textContent = 'You can try again now.';
+          tryAgain.disabled = false;
+          tryAgain.style.cursor = 'pointer';
+          return;
+        }
+        countdown.textContent = 'Please wait ' + seconds + ' second' + (seconds === 1 ? '' : 's') + ' before trying again.';
+        tryAgain.disabled = true;
+        tryAgain.style.cursor = 'not-allowed';
+        timer = setTimeout(tick, Math.min(250, Math.max(50, retryDeadline - Date.now())));
+      }
+      tick();
+      tryAgain.addEventListener('click', async function(){
+        if (tryAgain.disabled || retrying) return;
+        const request = info.request;
+        if (!request || typeof request.url !== 'string' || !request.url || typeof request.method !== 'string' || !request.method) {
+          countdown.textContent = 'The original request details are unavailable. Please return to the previous page and repeat the action.';
+          return;
+        }
+        retrying = true;
+        tryAgain.disabled = true;
+        tryAgain.textContent = 'Retrying…';
+        const headers = { 'Accept': 'application/json' };
+        const options = { method: request.method, headers, credentials: 'include' };
+        if (request.data !== undefined && request.data !== null && request.method.toUpperCase() !== 'GET') {
+          headers['Content-Type'] = 'application/json';
+          options.body = JSON.stringify(request.data);
+        }
+        try {
+          const response = await fetch(request.url, options);
+          if (response.status === 429) {
+            const value = response.headers.get('Retry-After');
+            let delay = 0;
+            if (value) {
+              const n = Number(value);
+              delay = Number.isFinite(n) && n >= 0 ? Math.ceil(n) : Math.max(0, Math.ceil((Date.parse(value) - Date.now()) / 1000));
+            }
+            info.retrySeconds = delay;
+            info.timestamp = Date.now();
+            sessionStorage.setItem('taskTrackerRateLimit', JSON.stringify(info));
+            retryDeadline = Date.now() + delay * 1000;
+            countdown.textContent = 'The request is still rate-limited.';
+            tryAgain.textContent = 'Try again';
+            retrying = false;
+            tick();
+            return;
+          }
+          if (response.ok) {
+            sessionStorage.removeItem('taskTrackerRateLimit');
+            const destination = info.returnTo || '/';
+            // If the retried request was login/register, go directly to the dashboard to avoid a protected-page flash.
+            window.location.replace(/^\/(login|register)(\/|$)/.test(destination) ? '/' : destination);
+            return;
+          }
+          countdown.textContent = 'The retry returned HTTP ' + response.status + '. The request was not completed.';
+          tryAgain.textContent = 'Try again';
+          tryAgain.disabled = false;
+          tryAgain.style.cursor = 'pointer';
+          retrying = false;
+        } catch(err) {
+          countdown.textContent = 'Retry failed due to a network error. Try again when your connection is restored.';
+          tryAgain.textContent = 'Try again';
+          tryAgain.disabled = false;
+          tryAgain.style.cursor = 'pointer';
+          retrying = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
