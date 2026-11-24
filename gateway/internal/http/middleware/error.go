@@ -21,7 +21,7 @@ func ErrorHandler() gin.HandlerFunc {
 
 		ctx := c.Request.Context()
 		if ctx != nil && ctx.Err() != nil {
-			//	If context has an error - don't write anything into response
+			//	If request context has an error - don't write anything into response
 			logger.Get().Warn(
 				"Request context has an error. Nothing will be written to response",
 				zap.Error(ctx.Err()),
@@ -48,7 +48,7 @@ func ErrorHandler() gin.HandlerFunc {
 }
 
 func handleHTTP(c *gin.Context, err error) {
-	log := logger.Get().SetOp("Handle HTTP")
+	log := logger.Get().SetOp("http.middleware.error.handleHTTP")
 
 	switch {
 	case errors.Is(err, errs.ErrUnauthorized):
@@ -60,6 +60,8 @@ func handleHTTP(c *gin.Context, err error) {
 			http.StatusBadRequest,
 			response.New(message.ErrBadRequest).SetValidationErrors(err),
 		)
+	case errors.Is(err, errs.ErrTooManyRequests):
+		c.AbortWithStatusJSON(http.StatusTooManyRequests, response.New(message.ErrTooManyRequest))
 	case errors.Is(err, errs.ErrNotFound):
 		c.AbortWithStatusJSON(http.StatusNotFound, response.New(message.ErrNotFound))
 	case errors.Is(err, errs.ErrMethodNotAllowed):
@@ -76,7 +78,7 @@ func handleHTTP(c *gin.Context, err error) {
 }
 
 func handleGRPC(c *gin.Context, st *status.Status) {
-	log := logger.Get().SetOp("Handle gRPC")
+	log := logger.Get().SetOp("http.middleware.error.handleGRPC")
 
 	switch st.Code() {
 	case codes.InvalidArgument:

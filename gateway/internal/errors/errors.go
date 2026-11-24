@@ -9,4 +9,5 @@ var (
 	ErrMethodNotAllowed = errors.New("http: method not allowed")
 	ErrUnauthorized     = errors.New("http: unauthorized")
 	ErrForbidden        = errors.New("http: forbidden")
+	ErrTooManyRequests  = errors.New("http: too many requests")
 )

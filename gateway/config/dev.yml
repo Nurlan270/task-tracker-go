@@ -8,6 +8,11 @@ http_server:
   read_timeout: 30s
   write_timeout: 30s
 
+redis:
+  host: redis
+  port: 6379
+  db: 0
+
 user_service:
   host: user-service
   port: 7070

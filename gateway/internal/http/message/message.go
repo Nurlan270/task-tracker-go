@@ -7,4 +7,5 @@ var (
 	ErrMethodNotAllowed = "Method not allowed."
 	ErrUnauthorized     = "You are not authorized to perform this action."
 	ErrForbidden        = "You are not allowed to perform this action."
+	ErrTooManyRequest   = "Too many requests. Please try again later."
 )

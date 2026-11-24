@@ -1,12 +1,15 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Nurlan270/task-tracker-go/common/closer"
 	"github.com/Nurlan270/task-tracker-go/common/validator"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -14,6 +17,7 @@ import (
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/handlers"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/middleware"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/http/router"
+	"github.com/Nurlan270/task-tracker-go/gateway/internal/ratelimiter"
 	"github.com/Nurlan270/task-tracker-go/gateway/internal/service"
 	cv "github.com/Nurlan270/task-tracker-go/gateway/internal/validator"
 
@@ -29,6 +33,12 @@ type diContainer struct {
 	//	Gin
 	gin *gin.Engine
 
+	//	Redis
+	rdb *redis.Client
+
+	//	Rate limiter
+	rateLimiter *ratelimiter.TokenBucket
+
 	//	Validator
 	validator *validator.Validate
 
@@ -41,7 +51,8 @@ type diContainer struct {
 	taskHandler *handlers.TaskHandler
 
 	//	HTTP Middlewares
-	authMW *middleware.AuthMiddleware
+	authMW    *middleware.AuthMiddleware
+	limiterMW *middleware.RateLimiterMiddleware
 
 	//	gRPC Core
 	userGRPCConn *grpc.ClientConn
@@ -193,9 +204,51 @@ func (c *diContainer) AuthMW() *middleware.AuthMiddleware {
 	return c.authMW
 }
 
+func (c *diContainer) RateLimiter() *ratelimiter.TokenBucket {
+	if c.rateLimiter == nil {
+		c.rateLimiter = ratelimiter.NewTokenBucket(c.RDB())
+	}
+
+	return c.rateLimiter
+}
+
+func (c *diContainer) LimiterMW() *middleware.RateLimiterMiddleware {
+	if c.limiterMW == nil {
+		c.limiterMW = middleware.NewRateLimiterMiddleware(c.RateLimiter())
+	}
+
+	return c.limiterMW
+}
+
+func (c *diContainer) RDB() *redis.Client {
+	if c.rdb == nil {
+		rdb := redis.NewClient(&redis.Options{
+			Addr:     c.cfg.Redis.GetAddr(),
+			Password: c.cfg.Redis.Password,
+			DB:       c.cfg.Redis.DB,
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		//	Ping redis server to ensure its connected successfully
+		if _, err := rdb.Ping(ctx).Result(); err != nil {
+			panic(fmt.Sprintf("failed to connect to redis server: %s", err))
+		}
+
+		closer.Add("Redis client", func() error {
+			return rdb.Close()
+		})
+
+		c.rdb = rdb
+	}
+
+	return c.rdb
+}
+
 func (c *diContainer) Router() *router.Router {
 	if c.router == nil {
-		c.router = router.New(c.Gin(), c.AuthMW(), c.AuthHandler(), c.TaskHandler())
+		c.router = router.New(c.Gin(), c.AuthMW(), c.LimiterMW(), c.AuthHandler(), c.TaskHandler())
 	}
 
 	return c.router
